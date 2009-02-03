@@ -1,3 +1,7 @@
+=Version 0.0.17=
+  * bug fix: was not loading .app files for included applications that
+    were not mentioned in /etc/erlrc.d
+
 =Version 0.0.16=
   * bug fix: was not starting dependencies of any included applications
     before starting the containing application

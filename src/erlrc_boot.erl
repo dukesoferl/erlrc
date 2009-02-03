@@ -181,15 +181,17 @@ load_resource_files (Dir, [ App | Remaining ], ToStart, AppToSpec) ->
     none ->
       Spec = erlrc_lib:load_resource_file (Dir, App),
       { application, App, Keys } = Spec,
-      % Must scan all dependencies, whether or not they were specified
-      % in the applications directory.
-      NewRemaining =
-	case lists:keysearch (applications, 1, Keys) of
-	  false ->
-	    Remaining;
-	  { value, { applications, Deps } } ->
-	    Deps ++ Remaining
-	end,
+      % Must scan all dependencies, and included applications, whether
+      % or not they were specified in the applications directory.
+      Deps = case lists:keysearch (applications, 1, Keys) of
+		{ value, { applications, D } } -> D;
+		false -> []
+	      end,
+      Incl = case lists:keysearch (included_applications, 1, Keys) of
+		{ value, { included_applications, I } } -> I;
+		false -> []
+	      end,
+      NewRemaining = Deps ++ Incl ++ Remaining,
       NewAppToSpec = gb_trees:insert (App, Spec, AppToSpec),
       load_resource_files (Dir, NewRemaining, [ App | ToStart ], NewAppToSpec)
   end.
