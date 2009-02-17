@@ -96,7 +96,7 @@ if ($pid)
     my $boot_result = <ERL>;
     chomp ($boot_result);
     my @actions = <ERL>;
-    close (ERL) or die $!;
+    close (ERL) or die "close failed: $!, $?, $boot_result";
 
     if ($boot_result ne $expected_result)
       {
