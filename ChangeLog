@@ -1,4 +1,4 @@
-=Version 0.1.0 [NOT YET RELEASED]=
+=Version 0.1.0 [NOT YET RELEASED] BROKEN ATM do not release
   * app override files are now merged with primarry app file
   * app overrides have syntax to control merging with app file
 
