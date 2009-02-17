@@ -67,38 +67,40 @@ load_resource_file (AppsDir, App) ->
   % try override ERLRC_ROOT/applications/APPLICATION.app
   OverrideResourceFile = AppsDir ++ "/" ++ ResourceBasename,
 
-  AppSpec = { application, App, [_|_] } = 
+  AppSpec = 
     case code:where_is_file (ResourceBasename) of
       non_existing ->
         throw ({ appspec_file_not_found, ResourceBasename });
       Path ->
         case file:consult (Path) of
-          { ok, [ Term1 ] } ->
-            Term1;
+          { ok, [ SSpec = { application, App, SList }] } when is_list (SList) ->
+            SSpec;
           { error, Reason } ->
             throw ({ appspec_file_parse_error, Path, Reason })
         end
     end,
 
-  OverrideSpec = {application, App, [_|_] } = 
+  OverrideSpec =
     case file:consult (OverrideResourceFile) of
-      { ok, [ Term2 ] } ->
-        Term2;
-      { error, enoent } ->
-        { application, App, [] };
-      { error, Reason2 } ->
-        throw ({ appspec_file_parse_error, OverrideResourceFile, Reason2 })
+      {ok, [ OSpec = { application, App, OList }]} when is_list (OList) ->
+        OSpec;
+      {error, enoent} ->
+        {application, App, []};
+      {error, Reason2} ->
+        throw ({appspec_file_parse_error, OverrideResourceFile, Reason2})
     end,
 
-  appspec_merge( OverrideSpec, AppSpec ).
+  appspec_merge (OverrideSpec, AppSpec).
 
 
+appspec_merge({application, App, Overrides}, {application, App, Source}) -> 
+  appspec_merge(App,Overrides,Source).
 
-appspec_merge({application,App,Overrides}, {application,App,Source})  
+appspec_merge(App,Overrides,Source)  
   when is_list(Source), is_list(Overrides) -> 
     S = lists:ukeysort(1, Source),
     O = lists:ukeysort(1, Overrides),
-    { application, App, appspec_sub_merge(S, O, S)}.
+    {application, App, appspec_sub_merge(S, O, S)}.
 
 appspec_sub_merge(_S, [], C) ->
   C;
