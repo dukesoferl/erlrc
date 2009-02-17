@@ -75,6 +75,8 @@ load_resource_file (AppsDir, App) ->
         case file:consult (Path) of
           { ok, [ SSpec = { application, App, SList }] } when is_list (SList) ->
             SSpec;
+          { ok, [ Other ] } -> 
+            throw ({ appspec_file_parse_error, Path, { bad_format, Other} });
           { error, Reason } ->
             throw ({ appspec_file_parse_error, Path, Reason })
         end
@@ -86,6 +88,10 @@ load_resource_file (AppsDir, App) ->
         OSpec;
       {error, enoent} ->
         {application, App, []};
+      { ok, [ Other2 ] } -> 
+        throw ({ appspec_file_parse_error, 
+                 OverrideResourceFile,
+                 { bad_format, Other2 } });
       {error, Reason2} ->
         throw ({appspec_file_parse_error, OverrideResourceFile, Reason2})
     end,
