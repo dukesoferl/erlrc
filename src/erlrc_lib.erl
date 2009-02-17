@@ -11,6 +11,23 @@
 %% @spec load_application (App::atom()) -> ok | { error, Reason }
 %% @doc Load the given application App, obeying an override resource
 %% file App.app in the directory $ERLRC_ROOT/applications.
+%% for override spec of:
+%% <code>
+%% { application, my_app [
+%%  { modules, [ module, module2] }
+%%  { env, { keymerge, [ {var, "value"} ] }
+%%  { applications, { merge, [ kernel, stdlib } }
+%%  { registered, { override, [ reg, reg2 ] }
+%% ] }
+%% </code> 
+%% <ul>
+%% <li>replaces modules list with the [ module, module2 ]</li>
+%% <li>merges the new {var, "value"} into the existing env list, 
+%%     replacing any { var, _ }</li>
+%% <li>merges kernel and stdlib into the applications list.</li>
+%% <li>replaces registered list with [ reg, reg2 ]</li>
+%% <li>All other props from the override spec remain.</li>
+%% </ul>
 %% @end
 
 load_application (erlrc) ->
