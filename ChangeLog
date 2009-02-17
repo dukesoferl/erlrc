@@ -1,4 +1,6 @@
-=Version 0.0.18 [NOT YET RELEASED]=
+=Version 0.1.0 [NOT YET RELEASED]=
+  * app override files are now merged with primarry app file
+  * app overrides have syntax to control merging with app file
 
 =Version 0.0.17=
   * bug fix: was not loading .app files for included applications that

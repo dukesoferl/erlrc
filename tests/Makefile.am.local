@@ -8,6 +8,7 @@ TESTS = 		\
   $(boot_tests)		\
   module-erlrc		\
   module-erlrcdynamic	\
+  module-erlrc_lib	\
   test-start		\
   test-stop		\
   test-downgrade	\
