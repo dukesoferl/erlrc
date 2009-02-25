@@ -56,7 +56,9 @@ have_release_handler_1_bug () ->
     lists:keysearch (attributes, 1, release_handler_1:module_info ()),
 
   case lists:keysearch (vsn, 1, Attr) of
-    { value, { vsn, [ 79147130521276782822511501112343775816 ] } } ->
+    { value, { vsn, [ 155526305879688717893982077562151834269 ] } } -> % r12b5
+      true;
+    { value, { vsn, [ 79147130521276782822511501112343775816 ] } } -> % r11b5
       true;
     _ ->
       false
