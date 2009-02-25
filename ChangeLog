@@ -1,3 +1,8 @@
+=Version 0.1.1=
+  * recognize buggy r12 release_handler as well
+  	these files are exactly the same between r11b5 and r12b5 so
+	happily the same patch works for both
+
 =Version 0.1.0=
   * app override files are now merged with primarry app file
   * app overrides have syntax to control merging with app file
