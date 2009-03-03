@@ -24,7 +24,11 @@
 %-                                Public                               -
 %-=====================================================================-
 
-%% @spec downgrade (atom (), string (), string ()) -> { ok, Reason::atom () } | { ok, [ Unpurged ] } | restart_new_emulator | { error, Reason }
+%% @spec downgrade (atom (), string (), string ())
+%%         -> { ok, Reason::atom () }
+%%          | { ok, [ Unpurged ] }
+%%          | restart_new_emulator
+%%          | { error, Reason }
 %% @equiv downgrade (Application, OldVersion, NewVersion, OldDir, NewDir)
 %% @doc OldDir and NewDir are assumed to be in the standard 
 %% location under code:lib_dir ().
