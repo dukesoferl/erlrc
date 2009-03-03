@@ -36,7 +36,11 @@ downgrade (Application, OldVersion, NewVersion) ->
   NewDir = Dir ++ "/" ++ atom_to_list (Application) ++ "-" ++ NewVersion,
   downgrade (Application, OldVersion, NewVersion, OldDir, NewDir).
 
-%% @spec downgrade (atom (), string (), string (), string (), string ()) -> { ok, Reason::atom () } | { ok, [ Unpurged ] } | restart_new_emulator | { error, Reason }
+%% @spec downgrade (atom (), string (), string (), string (), string ())
+%%         -> { ok, Reason::atom () }
+%%          | { ok, [ Unpurged ] }
+%%          | restart_new_emulator
+%%          | { error, Reason }
 %% @doc Downgrade an application from new version to old version.  Generates an
 %% .appup file and then calls release_handler:downgrade_app/2.
 %% @end
@@ -56,14 +60,14 @@ downgrade (Application, OldVersion, NewVersion, OldDir, NewDir) ->
                              OldDir,
                              NewDir) of
             R = { ok, _ } ->
-             case start (Application, OldVersion, OldDir) of
-               included -> R;
-               already_running -> R;
-               started -> R;
-               started_included_stopped -> R;
-               version_mismatch -> { error, version_mismatch };
-               version_load_mismatch -> { error, version_load_mismatch }
-             end;
+	      case start (Application, OldVersion, OldDir) of
+		included -> R;
+		already_running -> R;
+		started -> R;
+		started_included_stopped -> R;
+		version_mismatch -> { error, version_mismatch };
+		version_load_mismatch -> { error, version_load_mismatch }
+	      end;
             X ->
               X
           end;
@@ -99,7 +103,12 @@ local_error_msg (Format, Args) ->
     erlang:group_leader (Leader, self ())
   end.
 
-%% @spec start (atom (), string ()) -> already_running | started | version_mismatch | version_load_mismatch | bad_directory
+%% @spec start (atom (), string ())
+%%         -> already_running
+%%          | started
+%%          | version_mismatch
+%%          | version_load_mismatch
+%%          | bad_directory
 %% @equiv start (Application, Version, Dir)
 %% @doc Assumes Dir is the standard location under code:lib_dir ().
 %% @end
@@ -109,7 +118,14 @@ start (Application, Version) ->
   AppDir = Dir ++ "/" ++ atom_to_list (Application) ++ "-" ++ Version,
   start (Application, Version, AppDir).
 
-%% @spec start (atom (), string (), string ()) -> already_running | started | started_included_stopped | included | version_mismatch | version_load_mismatch | bad_directory
+%% @spec start (atom (), string (), string ())
+%%         -> already_running
+%%          | started
+%%          | started_included_stopped
+%%          | included
+%%          | version_mismatch
+%%          | version_load_mismatch
+%%          | bad_directory
 %% @doc Start the specified application version located in Dir.  
 %% Returns 'already_running'
 %% if that version of the application has been previously started.
@@ -201,7 +217,11 @@ start (Application, Version, AppDir) ->
       end
   end.
 
-%% @spec stop (atom (), string ()) -> stopped | stopped_included_started | version_mismatch | not_running
+%% @spec stop (atom (), string ())
+%%         -> stopped
+%%          | stopped_included_started
+%%          | version_mismatch
+%%          | not_running
 %% @doc Stop the specified application version.  Does not unload modules
 %% or adjust the code path.  
 %% Returns 'stopped' if the application version
@@ -252,7 +272,8 @@ stop (Application, Version) ->
       not_running
   end.
 
-%% @spec (atom (), string ()) -> unloaded | version_load_mismatch | bad_directory
+%% @spec (atom (), string ())
+%%         -> unloaded | version_load_mismatch | bad_directory
 %% @equiv unload (Application, Version, Dir)
 %% @doc Assumes Dir is the standard location under code:lib_dir ().
 %% @end
@@ -262,7 +283,8 @@ unload (Application, Version) ->
   AppDir = Dir ++ "/" ++ atom_to_list (Application) ++ "-" ++ Version,
   unload (Application, Version, AppDir).
 
-%% @spec unload (atom (), string (), string ()) -> unloaded | version_load_mismatch | bad_directory
+%% @spec unload (atom (), string (), string ())
+%%         -> unloaded | version_load_mismatch | bad_directory
 %% @doc Unload the modules corresponding to application version (as
 %% indicated by the app spec file) and remove
 %% the application directory from the code path.  Returns 'unloaded' if
@@ -307,7 +329,11 @@ unload (Application, Version, AppDir) ->
       bad_directory
   end.
 
-%% @spec upgrade (atom (), string (), string ()) -> { ok, Reason::atom () } | { ok, [ Unpurged ] } | restart_new_emulator | { error, Reason }
+%% @spec upgrade (atom (), string (), string ())
+%%         -> { ok, Reason::atom () }
+%%          | { ok, [ Unpurged ] }
+%%          | restart_new_emulator
+%%          | { error, Reason }
 %% @equiv upgrade (Application, OldVersion, NewVersion, OldDir, NewDir)
 %% @doc OldDir and NewDir are assumed to be in the standard 
 %% location under code:lib_dir ().
@@ -319,7 +345,11 @@ upgrade (Application, OldVersion, NewVersion) ->
   NewDir = Dir ++ "/" ++ atom_to_list (Application) ++ "-" ++ NewVersion,
   upgrade (Application, OldVersion, NewVersion, OldDir, NewDir).
 
-%% @spec upgrade (atom (), string (), string (), string (), string ()) -> { ok, Reason::atom () } | { ok, [ Unpurged ] } | restart_new_emulator | { error, Reason }
+%% @spec upgrade (atom (), string (), string (), string (), string ())
+%%         -> { ok, Reason::atom () }
+%%          | { ok, [ Unpurged ] }
+%%          | restart_new_emulator
+%%          | { error, Reason }
 %% @doc Upgrade an application from old version to new version.  Generates an
 %% .appup file and then calls release_handler:upgrade_app/2.
 %% @end
