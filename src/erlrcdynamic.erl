@@ -29,42 +29,51 @@
 %%          | { ok, [ Unpurged ] }
 %%          | restart_new_emulator
 %%          | { error, Reason }
-%% @equiv downgrade (Application, OldVersion, NewVersion, OldDir, NewDir)
-%% @doc OldDir and NewDir are assumed to be in the standard 
+%% @equiv downgrade (Application,
+%%                   EarlierVersion,
+%%                   LaterVersion,
+%%                   EarlierDir,
+%%                   LaterDir)
+%% @doc EarlierDir and LaterDir are assumed to be in the standard 
 %% location under code:lib_dir ().
 %% @end
 
-downgrade (Application, OldVersion, NewVersion) ->
-  Dir = code:lib_dir (),
-  OldDir = Dir ++ "/" ++ atom_to_list (Application) ++ "-" ++ OldVersion,
-  NewDir = Dir ++ "/" ++ atom_to_list (Application) ++ "-" ++ NewVersion,
-  downgrade (Application, OldVersion, NewVersion, OldDir, NewDir).
+downgrade (Application, EarlierVersion, LaterVersion) ->
+  Prefix = code:lib_dir () ++ "/" ++ atom_to_list (Application) ++ "-",
+  EarlierDir = Prefix ++ EarlierVersion,
+  LaterDir = Prefix ++ LaterVersion,
+  downgrade (Application, EarlierVersion, LaterVersion, EarlierDir, LaterDir).
 
 %% @spec downgrade (atom (), string (), string (), string (), string ())
 %%         -> { ok, Reason::atom () }
 %%          | { ok, [ Unpurged ] }
 %%          | restart_new_emulator
 %%          | { error, Reason }
-%% @doc Downgrade an application from new version to old version.  Generates an
-%% .appup file and then calls release_handler:downgrade_app/2.
+%% @doc Downgrade an application from LaterVersion to EarlierVersion.
+%% Generates an .appup file and then calls release_handler:downgrade_app/2.
 %% @end
 
-downgrade (Application, OldVersion, NewVersion, OldDir, NewDir) ->
+downgrade (Application, EarlierVersion, LaterVersion, EarlierDir, LaterDir) ->
   case lists:keysearch (Application, 1, application:which_applications ()) of
-    { value, { Application, _, OldVersion } } ->
+    { value, { Application, _, EarlierVersion } } ->
       { ok, already_running };
-    { value, { Application, _, NewVersion } } ->
-      do_downgrade (Application, OldVersion, NewVersion, OldDir, NewDir);
+    { value, { Application, _, LaterVersion } } ->
+      do_downgrade (Application,
+		    EarlierVersion,
+		    LaterVersion,
+		    EarlierDir,
+		    LaterDir);
     false ->
-      case file:read_file_info (NewDir) of
+      case file:read_file_info (LaterDir) of
         { ok, _ } ->
           case do_downgrade (Application,
-                             OldVersion,
-                             NewVersion,
-                             OldDir,
-                             NewDir) of
+                             EarlierVersion,
+                             LaterVersion,
+                             EarlierDir,
+                             LaterDir)
+	  of
             R = { ok, _ } ->
-	      case start (Application, OldVersion, OldDir) of
+	      case start (Application, EarlierVersion, EarlierDir) of
 		included -> R;
 		already_running -> R;
 		started -> R;
@@ -78,7 +87,7 @@ downgrade (Application, OldVersion, NewVersion, OldDir, NewDir) ->
         { error, enoent } ->
            % ok we'll interpret this to mean the new version was never
            % installed.  TODO: is there something better?
-           case start (Application, OldVersion, OldDir) of
+           case start (Application, EarlierVersion, EarlierDir) of
              included -> { ok, included };
              already_running -> { ok, already_running };
              started -> { ok, started };
@@ -88,11 +97,10 @@ downgrade (Application, OldVersion, NewVersion, OldDir, NewDir) ->
            end
       end;
     { value, { Application, _, OtherVersion } } ->
-      local_error_msg ("erlrcdynamic:upgrade/5: got OtherVersion '~p' " ++
-                       "which is neither NewVersion '~p' or OldVersion '~p'~n",
-                       [ OtherVersion,
-                         NewVersion,
-                         OldVersion ]),
+      local_error_msg ("erlrcdynamic:upgrade/5: got OtherVersion '~p' "
+                       "which is neither LaterVersion '~p' nor "
+		       "EarlierVersion '~p'~n",
+                       [ OtherVersion, LaterVersion, EarlierVersion ]),
       { error, version_mismatch }
   end.
 
@@ -150,10 +158,9 @@ start (Application, Version, AppDir) ->
     { value, { Application, _, Version } } -> 
       already_running;
     { value, { Application, _, OtherVersion }} ->
-      local_error_msg ("erlrcdynamic:start/3: got OtherVersion '~p' " ++
+      local_error_msg ("erlrcdynamic:start/3: got OtherVersion '~p' "
                        "which is not Version '~p'~n",
-                       [ OtherVersion,
-                         Version ]),
+                       [ OtherVersion, Version ]),
       version_mismatch;
     false ->
       EbinDir = AppDir ++ "/ebin",
@@ -161,7 +168,8 @@ start (Application, Version, AppDir) ->
         true ->
           case lists:keysearch (Application,
                                 1,
-                                application:loaded_applications ()) of
+                                application:loaded_applications ())
+	  of
             { value, { Application, _, Version } } -> 
               ok;
             { value, { Application, _, _ } } ->
@@ -173,7 +181,8 @@ start (Application, Version, AppDir) ->
 
           case lists:keysearch (Application,
                                 1,
-                                application:loaded_applications ()) of
+                                application:loaded_applications ())
+	  of
             { value, { Application, _, Version } } -> 
               case is_included (Application) of
                 true ->
@@ -303,7 +312,8 @@ unload (Application, Version, AppDir) ->
     true ->
       case lists:keysearch (Application,
                             1,
-                            application:loaded_applications ()) of
+                            application:loaded_applications ())
+      of
         false ->
           ok = erlrc_lib:load_application (Application);
         _ ->
@@ -312,7 +322,8 @@ unload (Application, Version, AppDir) ->
     
       case lists:keysearch (Application,
                             1,
-                            application:loaded_applications ()) of
+                            application:loaded_applications ())
+      of
         { value, { Application, _, Version } } ->
           case application:get_key (Application, modules) of
             undefined ->
@@ -338,70 +349,78 @@ unload (Application, Version, AppDir) ->
 %%          | { ok, [ Unpurged ] }
 %%          | restart_new_emulator
 %%          | { error, Reason }
-%% @equiv upgrade (Application, OldVersion, NewVersion, OldDir, NewDir)
-%% @doc OldDir and NewDir are assumed to be in the standard 
+%% @equiv upgrade (Application,
+%%                 EarlierVersion,
+%%                 LaterVersion,
+%%                 EarlierDir,
+%%                 LaterDir)
+%% @doc EarlierDir and LaterDir are assumed to be in the standard 
 %% location under code:lib_dir ().
 %% @end
 
-upgrade (Application, OldVersion, NewVersion) ->
-  Dir = code:lib_dir (),
-  OldDir = Dir ++ "/" ++ atom_to_list (Application) ++ "-" ++ OldVersion,
-  NewDir = Dir ++ "/" ++ atom_to_list (Application) ++ "-" ++ NewVersion,
-  upgrade (Application, OldVersion, NewVersion, OldDir, NewDir).
+upgrade (Application, EarlierVersion, LaterVersion) ->
+  Prefix = code:lib_dir () ++ "/" ++ atom_to_list (Application) ++ "-",
+  EarlierDir = Prefix ++ EarlierVersion,
+  LaterDir = Prefix ++ LaterVersion,
+  upgrade (Application, EarlierVersion, LaterVersion, EarlierDir, LaterDir).
 
 %% @spec upgrade (atom (), string (), string (), string (), string ())
 %%         -> { ok, Reason::atom () }
 %%          | { ok, [ Unpurged ] }
 %%          | restart_new_emulator
 %%          | { error, Reason }
-%% @doc Upgrade an application from old version to new version.  Generates an
-%% .appup file and then calls release_handler:upgrade_app/2.
+%% @doc Upgrade an application from EarlierVersion to LaterVersion.
+%% Generates an .appup file and then calls release_handler:upgrade_app/2.
 %% @end
 
-upgrade (Application, OldVersion, NewVersion, OldDir, NewDir) ->
+upgrade (Application, EarlierVersion, LaterVersion, EarlierDir, LaterDir) ->
   case lists:keysearch (Application, 1, application:which_applications ()) of
-    { value, { Application, _, NewVersion } } ->
+    { value, { Application, _, LaterVersion } } ->
       { ok, already_running };
-    { value, { Application, _, OldVersion } } ->
-      do_upgrade (Application, OldVersion, NewVersion, OldDir, NewDir);
+    { value, { Application, _, EarlierVersion } } ->
+      do_upgrade (Application,
+		  EarlierVersion,
+		  LaterVersion,
+		  EarlierDir,
+		  LaterDir);
     false ->
-      case file:read_file_info (OldDir) of
+      case file:read_file_info (EarlierDir) of
         { ok, _ } ->
-           case do_upgrade (Application,
-                            OldVersion,
-                            NewVersion,
-                            OldDir,
-                            NewDir) of
-             R = { ok, _ } ->
-               case start (Application, NewVersion, NewDir) of
-                 included -> R;
-                 already_running -> R;
-                 started -> R;
-                 started_included_stopped -> R;
-                 version_mismatch -> { error, version_mismatch };
-                 version_load_mismatch -> { error, version_load_mismatch }
-               end;
-             X ->
-               X
-           end;
+          case do_upgrade (Application,
+                           EarlierVersion,
+                           LaterVersion,
+                           EarlierDir,
+                           LaterDir)
+	  of
+            R = { ok, _ } ->
+              case start (Application, LaterVersion, LaterDir) of
+                included -> R;
+                already_running -> R;
+                started -> R;
+                started_included_stopped -> R;
+                version_mismatch -> { error, version_mismatch };
+                version_load_mismatch -> { error, version_load_mismatch }
+              end;
+            X ->
+              X
+          end;
         { error, enoent } ->
-           % ok we'll interpret this to mean the old version was never
-           % installed.  TODO: is there something better?
-           case start (Application, NewVersion, NewDir) of
-             included -> { ok, included };
-             already_running -> { ok, already_running };
-             started -> { ok, started };
-             started_included_stopped -> { ok, started_included_stopped };
-             version_mismatch -> { error, version_mismatch };
-             version_load_mismatch -> { error, version_load_mismatch }
-           end
+          % ok we'll interpret this to mean the old version was never
+          % installed.  TODO: is there something better?
+          case start (Application, LaterVersion, LaterDir) of
+            included -> { ok, included };
+            already_running -> { ok, already_running };
+            started -> { ok, started };
+            started_included_stopped -> { ok, started_included_stopped };
+            version_mismatch -> { error, version_mismatch };
+            version_load_mismatch -> { error, version_load_mismatch }
+          end
       end;
     { value, { Application, _, OtherVersion } } ->
-      local_error_msg ("erlrcdynamic:upgrade/5: got OtherVersion '~p' " ++
-                       "which is neither NewVersion '~p' or OldVersion '~p'~n",
-                       [ OtherVersion,
-                         NewVersion,
-                         OldVersion ]),
+      local_error_msg ("erlrcdynamic:upgrade/5: got OtherVersion '~p' "
+                       "which is neither LaterVersion '~p' "
+		       "nor EarlierVersion '~p'~n",
+                       [ OtherVersion, LaterVersion, EarlierVersion ]),
       { error, version_mismatch }
   end.
 
@@ -417,29 +436,42 @@ beam_exports (Beam, Func, Arity) ->
       false
   end.
 
-delta_includes (Application, OldDir, NewDir) ->
-  { ok, [ { application, Application, OldProps } ] } =
-    file:consult (OldDir ++ "/ebin/" ++ atom_to_list (Application) ++ ".app"),
-  { ok, [ { application, Application, NewProps } ] } =
-    file:consult (NewDir ++ "/ebin/" ++ atom_to_list (Application) ++ ".app"),
+% included application differences when going from FromDir to ToDir:
+%   { Added::list(), Removed::list() }
+delta_includes (Application, FromDir, ToDir) ->
+  { ok, [ { application, Application, FromProps } ] } =
+    file:consult (FromDir ++ "/ebin/" ++ atom_to_list (Application) ++ ".app"),
+  { ok, [ { application, Application, ToProps } ] } =
+    file:consult (ToDir ++ "/ebin/" ++ atom_to_list (Application) ++ ".app"),
 
-  case { lists:keysearch (included_applications, 1, OldProps),
-         lists:keysearch (included_applications, 1, NewProps) } of
-    { { value, { included_applications, OldInc } }, 
-      { value, { included_applications, NewInc } } } ->
-      { NewInc -- OldInc, OldInc -- NewInc };
-    { false, { value, { included_applications, NewInc } } } ->
-      { NewInc, [] };
-    { { value, { included_applications, OldInc } }, false }  ->
-      { [], OldInc };
+  case { lists:keysearch (included_applications, 1, FromProps),
+         lists:keysearch (included_applications, 1, ToProps) }
+  of
+    { { value, { included_applications, FromInc } }, 
+      { value, { included_applications, ToInc } } } ->
+      { ToInc -- FromInc, FromInc -- ToInc };
+    { false, { value, { included_applications, ToInc } } } ->
+      { ToInc, [] };
+    { { value, { included_applications, FromInc } }, false } ->
+      { [], FromInc };
     { false, false } ->
       { [], [] }
   end.
 
-do_downgrade (Application, OldVersion, NewVersion, OldDir, NewDir) ->
-  case maybe_make_appup (Application, OldVersion, NewVersion, OldDir, NewDir) of
+do_downgrade (Application,
+	      EarlierVersion,
+	      LaterVersion,
+	      EarlierDir,
+	      LaterDir) ->
+  case maybe_make_appup (Application,
+			 EarlierVersion,
+			 LaterVersion,
+			 EarlierDir,
+			 LaterDir)
+  of
     { ok, AppUp } ->
-      % work around http://www.erlang.org/pipermail/erlang-bugs/2008-February/000656.html
+      % work around
+      % http://www.erlang.org/pipermail/erlang-bugs/2008-February/000656.html
 
       case application:get_key (Application, modules) of
         { ok, Mods } ->
@@ -448,36 +480,38 @@ do_downgrade (Application, OldVersion, NewVersion, OldDir, NewDir) ->
           ok
       end,
 
-      { Added, Removed } = delta_includes (Application, OldDir, NewDir),
-
+      { AddedIncluded, RemovedIncluded } =
+	delta_includes (Application, LaterDir, EarlierDir),
       lists:foreach (fun (A) -> 
-                       local_info_msg
-                         ("Stopping application '~p', " ++
-                          "as it is now included in application '~p'~n",
-                          [ A, Application ]),
+                       local_info_msg ("Stopping application '~p', as it is "
+				       "now included in application '~p'~n",
+				       [ A, Application ]),
                        ok = maybe_stop (A)
                      end,
-                     Removed),
+                     AddedIncluded),
 
-      case downgrade_app (Application, AppUp, OldVersion, 
-                          OldDir, NewVersion, NewDir) of
+      case downgrade_app (Application,
+			  AppUp,
+			  EarlierVersion, 
+                          EarlierDir,
+			  LaterVersion,
+			  LaterDir)
+      of
         R = { ok, _ } ->
           { ok, Root } = application:get_env (erlrc, root_dir),
-
           lists:foreach (fun (A) -> 
                            case should_run (Root, A) of
                              true -> 
-                               local_info_msg
-                                 ("Starting application '~p', " ++
-                                  "as it is no longer included " ++
-                                  "in application '~p' ",
-                                  [ A, Application ]),
+                               local_info_msg ("Starting application '~p', "
+					       "as it is no longer included "
+					       "in application '~p'~n",
+					       [ A, Application ]),
                                ok = application:start (A);
                              false ->
                                ok
                            end
                          end,
-                         Added),
+                         RemovedIncluded),
           R;
         X ->
           X
@@ -486,10 +520,20 @@ do_downgrade (Application, OldVersion, NewVersion, OldDir, NewDir) ->
       R
   end.
 
-do_upgrade (Application, OldVersion, NewVersion, OldDir, NewDir) ->
-  case maybe_make_appup (Application, OldVersion, NewVersion, OldDir, NewDir) of
+do_upgrade (Application,
+	    EarlierVersion,
+	    LaterVersion,
+	    EarlierDir,
+	    LaterDir) ->
+  case maybe_make_appup (Application,
+			 EarlierVersion,
+			 LaterVersion,
+			 EarlierDir,
+			 LaterDir)
+  of
     { ok, AppUp } ->
-      % work around http://www.erlang.org/pipermail/erlang-bugs/2008-February/000656.html
+      % work around
+      % http://www.erlang.org/pipermail/erlang-bugs/2008-February/000656.html
 
       case application:get_key (Application, modules) of
         { ok, Mods } ->
@@ -498,36 +542,38 @@ do_upgrade (Application, OldVersion, NewVersion, OldDir, NewDir) ->
           ok
       end,
 
-      { Added, Removed } = delta_includes (Application, OldDir, NewDir),
-
+      { AddedIncluded, RemovedIncluded } =
+	delta_includes (Application, EarlierDir, LaterDir),
       lists:foreach (fun (A) -> 
-                       local_info_msg
-                         ("Stopping application '~p', " ++
-                          "as it is now included in application '~p'~n",
-                          [ A, Application ]),
+                       local_info_msg ("Stopping application '~p', as it is "
+				       "now included in application '~p'~n",
+				       [ A, Application ]),
                        ok = maybe_stop (A)
                      end,
-                     Added),
+                     AddedIncluded),
 
-      case upgrade_app (Application, AppUp, OldVersion,
-                        OldDir, NewVersion, NewDir) of
+      case upgrade_app (Application,
+			AppUp,
+			EarlierVersion,
+                        EarlierDir,
+			LaterVersion,
+			LaterDir)
+      of
         R = { ok, _ } ->
           { ok, Root } = application:get_env (erlrc, root_dir),
-
           lists:foreach (fun (A) -> 
                            case should_run (Root, A) of
                              true -> 
-                               local_info_msg
-                                 ("Starting application '~p', " ++
-                                  "as it is no longer included " ++
-                                  "in application '~p' ",
-                                  [ A, Application ]),
+                               local_info_msg ("Starting application '~p', "
+					       "as it is no longer included "
+					       "in application '~p' ",
+					       [ A, Application ]),
                                ok = application:start (A);
                              false ->
                                ok
                            end
                          end,
-                         Removed),
+                         RemovedIncluded),
           R;
         X ->
           X
@@ -536,23 +582,22 @@ do_upgrade (Application, OldVersion, NewVersion, OldDir, NewDir) ->
       R
   end.
 
-downgrade_directives (OldVersion, NewVersion, M, Beam) ->
+downgrade_directives (EarlierVersion, LaterVersion, M, Beam) ->
   case is_supervisor (Beam) of
     true ->
-      downgrade_directives_supervisor (OldVersion, NewVersion, M, Beam);
+      downgrade_directives_supervisor (EarlierVersion, LaterVersion, M, Beam);
     false ->
       case has_code_change (Beam) of
-        true ->
-          [ { update, M, { advanced, [] } } ];
-        false ->
-          [ { load_module, M } ]
+        true  -> [ { update, M, { advanced, [] } } ];
+        false -> [ { load_module, M } ]
       end
   end.
 
-downgrade_directives_supervisor (OldVersion, NewVersion, M, Beam) ->
+downgrade_directives_supervisor (EarlierVersion, LaterVersion, M, Beam) ->
   case beam_exports (Beam, sup_downgrade_notify, 2) of
     true ->
-      [ { apply, { M, sup_downgrade_notify, [ OldVersion, NewVersion ] } },
+      [ { apply,
+	  { M, sup_downgrade_notify, [ EarlierVersion, LaterVersion ] } },
         { update, M, supervisor } ];
     false ->
       [ { update, M, supervisor } ]
@@ -603,40 +648,40 @@ local_info_msg (Format, Args) ->
     erlang:group_leader (Leader, self ())
   end.
 
-make_appup (Application, OldVersion, NewVersion, OldDir, NewDir) ->
-  case file:consult (OldDir ++ "/ebin/" ++ 
+make_appup (Application, EarlierVersion, LaterVersion, EarlierDir, LaterDir) ->
+  case file:consult (EarlierDir ++ "/ebin/" ++ 
                      atom_to_list (Application) ++ ".app") of
-    { ok, [ { application, Application, OldProps } ] } ->
-      case vsn (OldProps) =:= OldVersion of
+    { ok, [ { application, Application, EarlierProps } ] } ->
+      case vsn (EarlierProps) =:= EarlierVersion of
         true ->
-          case file:consult (NewDir ++ "/ebin/" ++ 
+          case file:consult (LaterDir ++ "/ebin/" ++ 
                              atom_to_list (Application) ++ ".app") of
-            { ok, [ { application, Application, NewProps } ] } ->
-              case vsn (NewProps) =:= NewVersion of
+            { ok, [ { application, Application, LaterProps } ] } ->
+              case vsn (LaterProps) =:= LaterVersion of
                 true ->
-                  AddMods = modules (NewProps) -- modules (OldProps),
-                  DelMods = modules (OldProps) -- modules (NewProps),
+                  AddMods = modules (LaterProps) -- modules (EarlierProps),
+                  DelMods = modules (EarlierProps) -- modules (LaterProps),
 
                   { UpVersionChange, DownVersionChange } = 
-                    case start_module (NewProps) of
+                    case start_module (LaterProps) of
                       { ok, StartMod, StartArgs } ->
                         { 
                           [ D
-                            || BeamFile <- [ NewDir ++ "/ebin/" ++ 
+                            || BeamFile <- [ LaterDir ++ "/ebin/" ++ 
                                              atom_to_list (StartMod) ++ 
                                              ".beam" ],
                                { ok, Beam } <- [ file:read_file (BeamFile) ],
                                D <- version_change (Beam, 
-                                                    OldVersion,
+                                                    EarlierVersion,
                                                     StartMod,
                                                     StartArgs) ],
                           [ D
-                            || BeamFile <- [ NewDir ++ "/ebin/" ++ 
+                            || BeamFile <- [ LaterDir ++ "/ebin/" ++ 
                                              atom_to_list (StartMod) ++ 
                                              ".beam" ],
                                { ok, Beam } <- [ file:read_file (BeamFile) ],
                                D <- version_change (Beam, 
-                                                    { down, OldVersion },
+                                                    { down, EarlierVersion },
                                                     StartMod,
                                                     StartArgs) ]
                         };
@@ -646,47 +691,47 @@ make_appup (Application, OldVersion, NewVersion, OldDir, NewDir) ->
 
                   UpDirectives = 
                     [ D
-                      || M <- modules (NewProps) -- AddMods,
-                         BeamFile <- [ NewDir ++ "/ebin/" ++ 
+                      || M <- modules (LaterProps) -- AddMods,
+                         BeamFile <- [ LaterDir ++ "/ebin/" ++ 
                                        atom_to_list (M) ++ ".beam" ],
                          { ok, Beam } <- [ file:read_file (BeamFile) ],
-                         D <- upgrade_directives (OldVersion, 
-                                                  NewVersion,
+                         D <- upgrade_directives (EarlierVersion, 
+                                                  LaterVersion,
                                                   M,
                                                   Beam) ],
 
                   DownDirectives = 
                     [ D
-                      || M <- lists:reverse (modules (NewProps) -- AddMods),
-                         BeamFile <- [ NewDir ++ "/ebin/" ++ 
+                      || M <- lists:reverse (modules (LaterProps) -- AddMods),
+                         BeamFile <- [ LaterDir ++ "/ebin/" ++ 
                                        atom_to_list (M) ++ ".beam" ],
                          { ok, Beam } <- [ file:read_file (BeamFile) ],
-                         D <- downgrade_directives (OldVersion, 
-                                                    NewVersion,
+                         D <- downgrade_directives (EarlierVersion, 
+                                                    LaterVersion,
                                                     M,
                                                     Beam) ],
 
                   AppUp = 
-                    { NewVersion, 
-                      [ { OldVersion, 
+                    { LaterVersion, 
+                      [ { EarlierVersion, 
                           [ { add_module, M } || M <- AddMods ] ++ 
                           UpDirectives ++
                           UpVersionChange ++
                           [ { delete_module, M } || M <- DelMods ] } ],
-                      [ { OldVersion, 
-                          [ { add_module, M } || 
-                            M <- lists:reverse (DelMods) ] ++
+                      [ { EarlierVersion, 
+                          [ { add_module, M }
+			    || M <- lists:reverse (DelMods) ] ++
                           DownVersionChange ++ 
                           DownDirectives ++
-                          [ { delete_module, M } || 
-                            M <- lists:reverse (AddMods) ] } ]
+                          [ { delete_module, M }
+			    || M <- lists:reverse (AddMods) ] } ]
                     },
 
-                  local_info_msg ("make_appup/5: generated AppUp " ++
+                  local_info_msg ("make_appup/5: generated AppUp "
                                   "for ~p ~p -> ~p~n~p~n",
                                   [ Application,
-                                    OldVersion,
-                                    NewVersion,
+                                    EarlierVersion,
+                                    LaterVersion,
                                     AppUp ]),
 
                   { ok, AppUp };
@@ -694,7 +739,7 @@ make_appup (Application, OldVersion, NewVersion, OldDir, NewDir) ->
                   { error, bad_new_appvsn }
               end;
             _ ->
-            { error, bad_new_appfile }
+	      { error, bad_new_appfile }
           end;
         false ->
           { error, bad_old_appvsn }
@@ -703,13 +748,21 @@ make_appup (Application, OldVersion, NewVersion, OldDir, NewDir) ->
       { error, bad_old_appfile }
   end.
 
-maybe_make_appup (Application, OldVersion, NewVersion, OldDir, NewDir) ->
-  case file:consult (NewDir ++ "/ebin/" ++ 
+maybe_make_appup (Application,
+		  EarlierVersion,
+		  LaterVersion,
+		  EarlierDir,
+		  LaterDir) ->
+  case file:consult (LaterDir ++ "/ebin/" ++ 
                      atom_to_list (Application) ++ ".appup") of
     { ok, [ AppUp ] } ->
       { ok, AppUp };
     { error, enoent } ->
-      make_appup (Application, OldVersion, NewVersion, OldDir, NewDir)
+      make_appup (Application,
+		  EarlierVersion,
+		  LaterVersion,
+		  EarlierDir,
+		  LaterDir)
   end.
 
 maybe_stop (Application) ->
@@ -738,24 +791,23 @@ start_module (Props) ->
       undefined
   end.
 
-upgrade_directives (OldVersion, NewVersion, M, Beam) ->
+upgrade_directives (EarlierVersion, LaterVersion, M, Beam) ->
   case is_supervisor (Beam) of
     true ->
-      upgrade_directives_supervisor (OldVersion, NewVersion, M, Beam);
+      upgrade_directives_supervisor (EarlierVersion, LaterVersion, M, Beam);
     false ->
       case has_code_change (Beam) of
-        true ->
-          [ { update, M, { advanced, [] } } ];
-        false ->
-          [ { load_module, M } ]
+        true  -> [ { update, M, { advanced, [] } } ];
+        false -> [ { load_module, M } ]
       end
   end.
 
-upgrade_directives_supervisor (OldVersion, NewVersion, M, Beam) ->
+upgrade_directives_supervisor (EarlierVersion, LaterVersion, M, Beam) ->
   case beam_exports (Beam, sup_upgrade_notify, 2) of
     true ->
       [ { update, M, supervisor },
-        { apply, { M, sup_upgrade_notify, [ OldVersion, NewVersion ] } } ];
+        { apply,
+	  { M, sup_upgrade_notify, [ EarlierVersion, LaterVersion ] } } ];
     false ->
       [ { update, M, supervisor } ]
   end.
@@ -779,74 +831,66 @@ vsn (Props) ->
 %- permissions problems.                                               -
 %-=====================================================================-
 
-downgrade_app(App, AppUp, OldVsn, OldDir, NewVsn, NewDir) ->
-    try downgrade_script(App, AppUp, OldVsn, OldDir, NewVsn, NewDir) of
-	{ok, Script} ->
-          release_handler:eval_appup_script(App, OldVsn, OldDir, Script)
-    catch
-	throw:Reason ->
-	    {error, Reason}
-    end.
+downgrade_app (App, AppUp, OldVsn, OldDir, NewVsn, NewDir) ->
+  try downgrade_script (App, AppUp, OldVsn, OldDir, NewVsn, NewDir) of
+    { ok, Script } ->
+      release_handler:eval_appup_script (App, OldVsn, OldDir, Script)
+  catch
+    throw:Reason -> {error, Reason}
+  end.
 
-downgrade_script(App, AppUp, OldVsn, OldDir, NewVsn, NewDir) ->
-    {NewVsn, Script} = find_script(AppUp, OldVsn, down),
-    OldAppl = read_app(App, OldVsn, OldDir),
-    NewAppl = read_app(App, NewVsn, NewDir),
-    case systools_rc:translate_scripts(dn,
-				       [Script],[OldAppl],[NewAppl]) of
-	{ok, LowLevelScript} ->
-	    {ok, LowLevelScript};
-	{error, _SystoolsRC, Reason} ->
-	    throw(Reason)
-    end.
+downgrade_script (App, AppUp, OldVsn, OldDir, NewVsn, NewDir) ->
+  { NewVsn, Script } = find_script (AppUp, OldVsn, down),
+  OldAppl = read_app (App, OldVsn, OldDir),
+  NewAppl = read_app (App, NewVsn, NewDir),
+  case systools_rc:translate_scripts(dn, [Script], [OldAppl], [NewAppl]) of
+    { ok, LowLevelScript }         -> { ok, LowLevelScript };
+    { error, _SystoolsRC, Reason } -> throw (Reason)
+  end.
 
 upgrade_app(App, AppUp, OldVsn, OldDir, NewVsn, NewDir) ->
-    try upgrade_script(App, AppUp, OldVsn, OldDir, NewVsn, NewDir) of
-	{ok, NewVsn, Script} ->
-          release_handler:eval_appup_script(App, NewVsn, NewDir, Script)
-    catch
-	throw:Reason ->
-	    {error, Reason}
-    end.
+  try upgrade_script (App, AppUp, OldVsn, OldDir, NewVsn, NewDir) of
+    { ok, NewVsn, Script } ->
+      release_handler:eval_appup_script (App, NewVsn, NewDir, Script)
+  catch
+    throw:Reason -> { error, Reason }
+  end.
 
 upgrade_script(App, AppUp, OldVsn, OldDir, NewVsn, NewDir) ->
-    {NewVsn, Script} = find_script(AppUp, OldVsn, up),
-    OldAppl = read_app(App, OldVsn, OldDir),
-    NewAppl = read_app(App, NewVsn, NewDir),
-    case systools_rc:translate_scripts(up,
-				       [Script],[NewAppl],[OldAppl]) of
-	{ok, LowLevelScript} ->
-	    {ok, NewVsn, LowLevelScript};
-	{error, _SystoolsRC, Reason} ->
-	    throw(Reason)
-    end.
+  { NewVsn, Script } = find_script (AppUp, OldVsn, up),
+  OldAppl = read_app (App, OldVsn, OldDir),
+  NewAppl = read_app (App, NewVsn, NewDir),
+  case systools_rc:translate_scripts (up, [Script], [NewAppl], [OldAppl]) of
+    { ok, LowLevelScript }         -> { ok, NewVsn, LowLevelScript };
+    { error, _SystoolsRC, Reason } -> throw (Reason)
+  end.
 
 find_script (AppUp, OldVsn, UpOrDown) ->
   case AppUp of
-    {NewVsn, UpFromScripts, DownToScripts} ->
-          Scripts = case UpOrDown of
-                        up -> UpFromScripts;
-                        down -> DownToScripts
-                    end,
-          case lists:keysearch(OldVsn, 1, Scripts) of
-              {value, {_OldVsn, Script}} ->
-                  {NewVsn, Script};
-              false ->
-                  throw({version_not_in_appup, OldVsn})
-          end
+    { NewVsn, UpFromScripts, DownToScripts } ->
+      Scripts = case UpOrDown of
+		  up   -> UpFromScripts;
+		  down -> DownToScripts
+		end,
+      case lists:keysearch (OldVsn, 1, Scripts) of
+	{ value, { _OldVsn, Script } } ->
+	  { NewVsn, Script };
+	false ->
+	  throw ({ version_not_in_appup, OldVsn })
+      end
   end.
 
-read_app(App, Vsn, Dir) ->
-    AppS = atom_to_list(App),
-    Path = [filename:join(Dir, "ebin")],
-    case systools_make:read_application(AppS, Vsn, Path, []) of
-        {ok, Appl} ->
-            Appl;
-        {error, {not_found, _AppFile}} ->
-            throw({no_app_found, Vsn, Dir});
-        {error, Reason} ->
-            throw(Reason)
-    end.
+read_app (App, Vsn, Dir) ->
+  AppS = atom_to_list (App),
+  Path = [ filename:join (Dir, "ebin") ],
+  case systools_make:read_application (AppS, Vsn, Path, []) of
+    { ok, Appl } ->
+      Appl;
+    { error, { not_found, _AppFile } } ->
+      throw ({ no_app_found, Vsn, Dir });
+    { error, Reason } ->
+      throw (Reason)
+  end.
 
 -ifdef (EUNIT).
 
@@ -884,6 +928,7 @@ app_setup () ->
 
   OldIncApp = <<"
  -module (erlrctestmakeappupinc).
+ -vsn (\"0.0.0\").
  -behaviour (application).
  -export ([ start/2, stop/1, version_change/2 ]).
  
@@ -926,6 +971,7 @@ app_setup () ->
 
   NewIncApp = <<"
  -module (erlrctestmakeappupinc).
+ -vsn (\"0.0.1\").
  -behaviour (application).
  -export ([ start/2, stop/1, version_change/2 ]).
  
@@ -951,20 +997,23 @@ app_setup () ->
   os:cmd ("cd " ++ Dir ++ "/sup-incnew/ebin && erlc erlrctestmakeappupinc.erl"),
 { ok, _ } = file:read_file_info (Dir ++ "/sup-incnew/ebin/erlrctestmakeappupinc.beam"),
 
-  OldApp = { application, sup, [ 
-               { vsn, "0.0.0" },
-               { description, "yo" },
-               { registered, [ erlrctestmakeappupsup, erlrctestmakeappupsrv ] },
-               { applications, [ kernel, stdlib ] },
-               { modules, [ erlrctestmakeappupsup, 
-                            erlrctestmakeappupsrv,
-                            erlrctestmakeappup ] },
-               { mod, { erlrctestmakeappup, [] } }
-             ] 
-           },
+  OldAppSpec =
+    { application,
+      sup,
+      [ { vsn, "0.0.0" },
+	{ description, "yo" },
+	{ registered, [ erlrctestmakeappupsup, erlrctestmakeappupsrv ] },
+	{ applications, [ kernel, stdlib ] },
+	{ modules, [ erlrctestmakeappupsup, 
+		     erlrctestmakeappupsrv,
+		     erlrctestmakeappup ] },
+	{ mod, { erlrctestmakeappup, [] } }
+      ] 
+    },
 
-  App = <<"
+  OldApp = <<"
 -module (erlrctestmakeappup).
+-vsn (\"0.0.0\").
 -behaviour (application).
 -export ([ start/2, stop/1 ]).
 
@@ -972,7 +1021,7 @@ start (_Type, _Args) -> erlrctestmakeappupsup:start_link ().
 stop (_) -> ok.
  ">>,
 
-  ok = file:write_file (Dir ++ "/sup-old/ebin/erlrctestmakeappup.erl", App),
+  ok = file:write_file (Dir ++ "/sup-old/ebin/erlrctestmakeappup.erl", OldApp),
   os:cmd ("cd " ++ Dir ++ "/sup-old/ebin && erlc erlrctestmakeappup.erl"),
 
   AppSup = <<"
@@ -987,8 +1036,57 @@ stop (_) -> ok.
     file:write_file (Dir ++ "/sup-old/ebin/erlrctestmakeappupsup.erl", AppSup),
   os:cmd ("cd " ++ Dir ++ "/sup-old/ebin && erlc erlrctestmakeappupsup.erl"),
 
-  AppSrv = <<"
+  OldAppSrv = <<"
  -module (erlrctestmakeappupsrv).
+ -vsn (\"0.0.0\").
+ -export ([ start_link/0, get/0 ]).
+ -export ([ init/1,
+            handle_call/3,
+            handle_cast/2,
+            handle_info/2,
+            terminate/2,
+            code_change/3 ]).
+
+  % Well, if i used Erlang to parse Erlang, instead of perl, I wouldn't have
+  % to play silly games like this.
+
+ -define (START_LINK, gen_server:start_link).
+ start_link () -> ?START_LINK ({ local, ?MODULE }, ?MODULE, [], []).
+ get () -> gen_server:call (?MODULE, get).
+ init ([]) -> { ok, init }.
+ handle_call (get, _, State) -> { reply, State, State }.
+ handle_cast (_, State) -> { noreply, State }.
+ handle_info (_, State) -> { noreply, State }.
+ terminate (_, _) -> ok.
+ code_change (OldVsn, State, Extra) -> { ok, { code_change, OldVsn } }.">>,
+
+  NewAppSrv = <<"
+ -module (erlrctestmakeappupsrv).
+ -vsn (\"0.0.1\").
+ -export ([ start_link/0, get/0 ]).
+ -export ([ init/1,
+            handle_call/3,
+            handle_cast/2,
+            handle_info/2,
+            terminate/2,
+            code_change/3 ]).
+
+  % Well, if i used Erlang to parse Erlang, instead of perl, I wouldn't have
+  % to play silly games like this.
+
+ -define (START_LINK, gen_server:start_link).
+ start_link () -> ?START_LINK ({ local, ?MODULE }, ?MODULE, [], []).
+ get () -> gen_server:call (?MODULE, get).
+ init ([]) -> { ok, init }.
+ handle_call (get, _, State) -> { reply, State, State }.
+ handle_cast (_, State) -> { noreply, State }.
+ handle_info (_, State) -> { noreply, State }.
+ terminate (_, _) -> ok.
+ code_change (OldVsn, State, Extra) -> { ok, { code_change, OldVsn } }.">>,
+
+  NewNewAppSrv = <<"
+ -module (erlrctestmakeappupsrv).
+ -vsn (\"0.0.2\").
  -export ([ start_link/0, get/0 ]).
  -export ([ init/1,
             handle_call/3,
@@ -1011,23 +1109,25 @@ stop (_) -> ok.
  code_change (OldVsn, State, Extra) -> { ok, { code_change, OldVsn } }.">>,
 
   ok = 
-    file:write_file (Dir ++ "/sup-old/ebin/erlrctestmakeappupsrv.erl", AppSrv),
+    file:write_file (Dir ++ "/sup-old/ebin/erlrctestmakeappupsrv.erl", OldAppSrv),
   os:cmd ("cd " ++ Dir ++ "/sup-old/ebin && erlc erlrctestmakeappupsrv.erl"),
 
   ok = 
     file:write_file (Dir ++ "/sup-old/ebin/sup.app",
-                     erlang:iolist_to_binary (io_lib:format ("~p.", [ OldApp ]))),
+                     erlang:iolist_to_binary (io_lib:format ("~p.", [ OldAppSpec ]))),
 
-  NewApp = { application, sup, [ 
-               { vsn, "0.0.1" },
-               { description, "yo" },
-               { registered, [ erlrctestmakeappupsup, erlrctestmakeappupsrv ] },
-               { applications, [ kernel, stdlib ] },
-               { modules, [ erlrctestmakeappup, erlrctestmakeappupsup, 
-                            erlrctestmakeappupsrv, erlrctestmakeappupdild ] },
-               { mod, { erlrctestmakeappup, [] } }
-             ] 
-           },
+  NewAppSpec =
+    { application,
+      sup,
+      [ { vsn, "0.0.1" },
+	{ description, "yo" },
+	{ registered, [ erlrctestmakeappupsup, erlrctestmakeappupsrv ] },
+	{ applications, [ kernel, stdlib ] },
+	{ modules, [ erlrctestmakeappup, erlrctestmakeappupsup, 
+		     erlrctestmakeappupsrv, erlrctestmakeappupdild ] },
+	{ mod, { erlrctestmakeappup, [] } }
+      ] 
+    },
 
   AppNew = <<"
 -module (erlrctestmakeappup).
@@ -1049,7 +1149,7 @@ flass () -> turg.
   os:cmd ("cd " ++ Dir ++ "/sup-new/ebin && erlc erlrctestmakeappupsup.erl"),
 
   ok = 
-    file:write_file (Dir ++ "/sup-new/ebin/erlrctestmakeappupsrv.erl", AppSrv),
+    file:write_file (Dir ++ "/sup-new/ebin/erlrctestmakeappupsrv.erl", NewAppSrv),
 
   os:cmd ("cd " ++ Dir ++ "/sup-new/ebin && erlc erlrctestmakeappupsrv.erl"),
 
@@ -1062,9 +1162,9 @@ flass () -> turg.
   ok = 
     file:write_file (Dir ++ "/sup-new/ebin/sup.app",
                      erlang:iolist_to_binary 
-                       (io_lib:format ("~p.", [ NewApp ]))),
+                       (io_lib:format ("~p.", [ NewAppSpec ]))),
 
-  NewNewApp = { application, sup, [ 
+  NewNewAppSpec = { application, sup, [ 
                { vsn, "0.0.2" },
                { description, "yo" },
                { registered, [ erlrctestmakeappupsup, erlrctestmakeappupsrv ] },
@@ -1074,8 +1174,18 @@ flass () -> turg.
                { mod, { erlrctestmakeappup, [] } }
              ] 
            },
+  AppNewNew = <<"
+-module (erlrctestmakeappup).
+-vsn (\"0.0.2\").
+-behaviour (application).
+-export ([ start/2, stop/1 ]).
+-export ([ flass/0 ]).
 
-  ok = file:write_file (Dir ++ "/sup-newnew/ebin/erlrctestmakeappup.erl", App),
+start (_Type, _Args) -> erlrctestmakeappupsup:start_link ().
+stop (_) -> ok.
+ ">>,
+
+  ok = file:write_file (Dir ++ "/sup-newnew/ebin/erlrctestmakeappup.erl", AppNewNew),
   os:cmd ("cd " ++ Dir ++ "/sup-newnew/ebin && erlc erlrctestmakeappup.erl"),
 
   ok = 
@@ -1084,7 +1194,7 @@ flass () -> turg.
   os:cmd ("cd " ++ Dir ++ "/sup-newnew/ebin && erlc erlrctestmakeappupsup.erl"),
 
   ok = 
-    file:write_file (Dir ++ "/sup-newnew/ebin/erlrctestmakeappupsrv.erl", AppSrv),
+    file:write_file (Dir ++ "/sup-newnew/ebin/erlrctestmakeappupsrv.erl", NewNewAppSrv),
 
   os:cmd ("cd " ++ Dir ++ "/sup-newnew/ebin && erlc erlrctestmakeappupsrv.erl"),
 
@@ -1097,7 +1207,7 @@ flass () -> turg.
   ok = 
     file:write_file (Dir ++ "/sup-newnew/ebin/sup.app",
                      erlang:iolist_to_binary 
-                       (io_lib:format ("~p.", [ NewNewApp ]))),
+                       (io_lib:format ("~p.", [ NewNewAppSpec ]))),
 
   ok = file:make_dir (Dir ++ "/erlrc.d"),
   ok = file:make_dir (Dir ++ "/erlrc.d/applications"),
@@ -1262,14 +1372,14 @@ upgrade_test_ () ->
       { value, { sup, _, "0.0.0" } } = 
         lists:keysearch (sup, 1, application:which_applications ()),
       init = erlrctestmakeappupsrv:get (),
-      { ok, _ } = upgrade (sup, 
-                           "0.0.0", 
-                           "0.0.1", 
-                           Dir ++ "/sup-old",
-                           Dir ++ "/sup-new"),
+      { ok, _ } = erlrcdynamic:upgrade (sup, 
+					"0.0.0", 
+					"0.0.1", 
+					Dir ++ "/sup-old",
+					Dir ++ "/sup-new"),
       { value, { sup, _, "0.0.1" } } = 
         lists:keysearch (sup, 1, application:which_applications ()),
-      { code_change, _ } = erlrctestmakeappupsrv:get (),
+      { code_change, "0.0.0" } = erlrctestmakeappupsrv:get (),
       ok
     end }.
 
@@ -1370,7 +1480,7 @@ upgrade_double_test_ () ->
                            Dir ++ "/sup-new"),
       { value, { sup, _, "0.0.1" } } = 
         lists:keysearch (sup, 1, application:which_applications ()),
-      { code_change, _ } = erlrctestmakeappupsrv:get (),
+      { code_change, "0.0.0" } = erlrctestmakeappupsrv:get (),
       { ok, _ } = upgrade (sup, 
                            "0.0.1", 
                            "0.0.2", 
@@ -1378,7 +1488,7 @@ upgrade_double_test_ () ->
                            Dir ++ "/sup-newnew"),
       { value, { sup, _, "0.0.2" } } = 
         lists:keysearch (sup, 1, application:which_applications ()),
-      { code_change, _ } = erlrctestmakeappupsrv:get (),
+      { code_change, "0.0.1" } = erlrctestmakeappupsrv:get (),
       ok
     end }.
 
@@ -1400,7 +1510,7 @@ upgrade_included_test_ () ->
                            "0.0.1", 
                            Dir ++ "/sup-old",
                            Dir ++ "/sup-new"),
-      { code_change, _ } = erlrctestmakeappupsrv:get (),
+      { code_change, "0.0.0" } = erlrctestmakeappupsrv:get (),
       true = lists:keymember (supinc, 1, application:which_applications ()),
       false = lists:keymember (sup, 1, application:which_applications ()),
       ok
@@ -1459,7 +1569,7 @@ downgrade_test_ () ->
                              "0.0.1", 
                              Dir ++ "/sup-old",
                              Dir ++ "/sup-new"),
-      { code_change, { down, _ } } = erlrctestmakeappupsrv:get (),
+      { code_change, { down, "0.0.0" } } = erlrctestmakeappupsrv:get (),
       { value, { sup, _, "0.0.0" } } = 
         lists:keysearch (sup, 1, application:which_applications ()),
       ok
@@ -1483,7 +1593,7 @@ downgrade_included_test_ () ->
                              "0.0.1", 
                              Dir ++ "/sup-old",
                              Dir ++ "/sup-new"),
-      { code_change, { down, _ } } = erlrctestmakeappupsrv:get (),
+      { code_change, { down, "0.0.0" } } = erlrctestmakeappupsrv:get (),
       true = lists:keymember (supinc, 1, application:which_applications ()),
       false = lists:keymember (sup, 1, application:which_applications ()),
       ok
