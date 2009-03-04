@@ -1053,12 +1053,12 @@ stop (_) -> ok.
  -define (START_LINK, gen_server:start_link).
  start_link () -> ?START_LINK ({ local, ?MODULE }, ?MODULE, [], []).
  get () -> gen_server:call (?MODULE, get).
- init ([]) -> { ok, init }.
+ init ([]) -> { ok, { \"0.0.0\", init } }.
  handle_call (get, _, State) -> { reply, State, State }.
  handle_cast (_, State) -> { noreply, State }.
  handle_info (_, State) -> { noreply, State }.
  terminate (_, _) -> ok.
- code_change (OldVsn, State, Extra) -> { ok, { code_change, OldVsn } }.">>,
+ code_change (OldVsn, State, Extra) -> { ok, { \"0.0.0\", { code_change, OldVsn } } }.">>,
 
   NewAppSrv = <<"
  -module (erlrctestmakeappupsrv).
@@ -1077,12 +1077,12 @@ stop (_) -> ok.
  -define (START_LINK, gen_server:start_link).
  start_link () -> ?START_LINK ({ local, ?MODULE }, ?MODULE, [], []).
  get () -> gen_server:call (?MODULE, get).
- init ([]) -> { ok, init }.
+ init ([]) -> { ok, { \"0.0.1\", init } }.
  handle_call (get, _, State) -> { reply, State, State }.
  handle_cast (_, State) -> { noreply, State }.
  handle_info (_, State) -> { noreply, State }.
  terminate (_, _) -> ok.
- code_change (OldVsn, State, Extra) -> { ok, { code_change, OldVsn } }.">>,
+ code_change (OldVsn, State, Extra) -> { ok, { \"0.0.1\", { code_change, OldVsn } } }.">>,
 
   NewNewAppSrv = <<"
  -module (erlrctestmakeappupsrv).
@@ -1101,12 +1101,12 @@ stop (_) -> ok.
  -define (START_LINK, gen_server:start_link).
  start_link () -> ?START_LINK ({ local, ?MODULE }, ?MODULE, [], []).
  get () -> gen_server:call (?MODULE, get).
- init ([]) -> { ok, init }.
+ init ([]) -> { ok, { \"0.0.2\", init } }.
  handle_call (get, _, State) -> { reply, State, State }.
  handle_cast (_, State) -> { noreply, State }.
  handle_info (_, State) -> { noreply, State }.
  terminate (_, _) -> ok.
- code_change (OldVsn, State, Extra) -> { ok, { code_change, OldVsn } }.">>,
+ code_change (OldVsn, State, Extra) -> { ok, { \"0.0.2\", { code_change, OldVsn } } }.">>,
 
   ok = 
     file:write_file (Dir ++ "/sup-old/ebin/erlrctestmakeappupsrv.erl", OldAppSrv),
@@ -1371,7 +1371,7 @@ upgrade_test_ () ->
       started = start (sup, "0.0.0", Dir ++ "/sup-old"),
       { value, { sup, _, "0.0.0" } } = 
         lists:keysearch (sup, 1, application:which_applications ()),
-      init = erlrctestmakeappupsrv:get (),
+      { "0.0.0", init } = erlrctestmakeappupsrv:get (),
       { ok, _ } = erlrcdynamic:upgrade (sup, 
 					"0.0.0", 
 					"0.0.1", 
@@ -1379,7 +1379,7 @@ upgrade_test_ () ->
 					Dir ++ "/sup-new"),
       { value, { sup, _, "0.0.1" } } = 
         lists:keysearch (sup, 1, application:which_applications ()),
-      { code_change, "0.0.0" } = erlrctestmakeappupsrv:get (),
+      { "0.0.1", { code_change, "0.0.0" } } = erlrctestmakeappupsrv:get (),
       ok
     end }.
 
@@ -1393,7 +1393,7 @@ upgrade_existing_appup_test_ () ->
       started = start (sup, "0.0.0", Dir ++ "/sup-old"),
       { value, { sup, _, "0.0.0" } } = 
         lists:keysearch (sup, 1, application:which_applications ()),
-      init = erlrctestmakeappupsrv:get (),
+      { "0.0.0", init } = erlrctestmakeappupsrv:get (),
       AppUp = <<"
 {\"0.0.1\",
  [{\"0.0.0\",
@@ -1414,7 +1414,8 @@ upgrade_existing_appup_test_ () ->
                            Dir ++ "/sup-new"),
       { value, { sup, _, "0.0.1" } } = 
         lists:keysearch (sup, 1, application:which_applications ()),
-      init = erlrctestmakeappupsrv:get (),
+      % i.e., the custom appup script does not call code_change
+      { "0.0.0", init } = erlrctestmakeappupsrv:get (),
       ok
     end }.
 
@@ -1472,7 +1473,7 @@ upgrade_double_test_ () ->
       started = start (sup, "0.0.0", Dir ++ "/sup-old"),
       { value, { sup, _, "0.0.0" } } = 
         lists:keysearch (sup, 1, application:which_applications ()),
-      init = erlrctestmakeappupsrv:get (),
+      { "0.0.0", init } = erlrctestmakeappupsrv:get (),
       { ok, _ } = upgrade (sup, 
                            "0.0.0", 
                            "0.0.1", 
@@ -1480,7 +1481,7 @@ upgrade_double_test_ () ->
                            Dir ++ "/sup-new"),
       { value, { sup, _, "0.0.1" } } = 
         lists:keysearch (sup, 1, application:which_applications ()),
-      { code_change, "0.0.0" } = erlrctestmakeappupsrv:get (),
+      { "0.0.1", { code_change, "0.0.0" } } = erlrctestmakeappupsrv:get (),
       { ok, _ } = upgrade (sup, 
                            "0.0.1", 
                            "0.0.2", 
@@ -1488,7 +1489,7 @@ upgrade_double_test_ () ->
                            Dir ++ "/sup-newnew"),
       { value, { sup, _, "0.0.2" } } = 
         lists:keysearch (sup, 1, application:which_applications ()),
-      { code_change, "0.0.1" } = erlrctestmakeappupsrv:get (),
+      { "0.0.2", { code_change, "0.0.1" } } = erlrctestmakeappupsrv:get (),
       ok
     end }.
 
@@ -1504,13 +1505,13 @@ upgrade_included_test_ () ->
       started_included_stopped = start (supinc, "0.0.0", Dir ++ "/sup-inc"),
       true = lists:keymember (supinc, 1, application:which_applications ()),
       false = lists:keymember (sup, 1, application:which_applications ()),
-      init = erlrctestmakeappupsrv:get (),
+      { "0.0.0", init } = erlrctestmakeappupsrv:get (),
       { ok, _ } = upgrade (sup, 
                            "0.0.0", 
                            "0.0.1", 
                            Dir ++ "/sup-old",
                            Dir ++ "/sup-new"),
-      { code_change, "0.0.0" } = erlrctestmakeappupsrv:get (),
+      { "0.0.1", { code_change, "0.0.0" } } = erlrctestmakeappupsrv:get (),
       true = lists:keymember (supinc, 1, application:which_applications ()),
       false = lists:keymember (sup, 1, application:which_applications ()),
       ok
@@ -1563,13 +1564,14 @@ downgrade_test_ () ->
       started = start (sup, "0.0.1", Dir ++ "/sup-new"),
       { value, { sup, _, "0.0.1" } } = 
         lists:keysearch (sup, 1, application:which_applications ()),
-      init = erlrctestmakeappupsrv:get (),
+      { "0.0.1", init } = erlrctestmakeappupsrv:get (),
       { ok, _ } = downgrade (sup, 
                              "0.0.0", 
                              "0.0.1", 
                              Dir ++ "/sup-old",
                              Dir ++ "/sup-new"),
-      { code_change, { down, "0.0.0" } } = erlrctestmakeappupsrv:get (),
+      { "0.0.1", { code_change, { down, "0.0.0" } } } =
+	erlrctestmakeappupsrv:get (),
       { value, { sup, _, "0.0.0" } } = 
         lists:keysearch (sup, 1, application:which_applications ()),
       ok
@@ -1587,13 +1589,14 @@ downgrade_included_test_ () ->
       started_included_stopped = start (supinc, "0.0.0", Dir ++ "/sup-inc"),
       true = lists:keymember (supinc, 1, application:which_applications ()),
       false = lists:keymember (sup, 1, application:which_applications ()),
-      init = erlrctestmakeappupsrv:get (),
+      { "0.0.1", init } = erlrctestmakeappupsrv:get (),
       { ok, _ } = downgrade (sup, 
                              "0.0.0", 
                              "0.0.1", 
                              Dir ++ "/sup-old",
                              Dir ++ "/sup-new"),
-      { code_change, { down, "0.0.0" } } = erlrctestmakeappupsrv:get (),
+      { "0.0.1", { code_change, { down, "0.0.0" } } } =
+	erlrctestmakeappupsrv:get (),
       true = lists:keymember (supinc, 1, application:which_applications ()),
       false = lists:keymember (sup, 1, application:which_applications ()),
       ok
