@@ -1043,6 +1043,10 @@ restore_mods ([], [], Actions) ->
 	       [],
 	       Actions).
 
+%-=====================================================================-
+%-                                Tests                                -
+%-=====================================================================-
+
 -ifdef (EUNIT).
 
 app_setup () ->
@@ -1061,32 +1065,53 @@ app_setup () ->
   ok = file:make_dir (Dir ++ "/sup-incnew"),
   ok = file:make_dir (Dir ++ "/sup-incnew/ebin"),
 
-  OldIncAppFile = { application, supinc, [
-               { vsn, "0.0.0" },
-               { description, "yo" },
-               { registered, [ ] },
-               { applications, [ kernel, stdlib ] },
-               { modules, [ erlrctestmakeappupinc ] },
-               { included_applications, [ sup ] },
-               { mod, { erlrctestmakeappupinc, [] } }
-             ]
-           },
+  % ---------------------------------------------------------------------------
+  SupervisorErl = <<"
+-module (erlrctestmakeappupsup).
+-behavior (supervisor).
+-export ([ start_link/0, init/1 ]).
+init ([]) -> { ok, { { one_for_one, 3, 10 }, [ { erlrctestmakeappupsrv, { erlrctestmakeappupsrv, start_link, [ ] }, temporary, 10000, worker, [ erlrctestmakeappupsrv ] } ] } }.
+start_link () -> supervisor:start_link (?MODULE, []).
+">>,
+  % ---------------------------------------------------------------------------
 
-  ok =
-    file:write_file
-      (Dir ++ "/sup-inc/ebin/supinc.app",
-       erlang:iolist_to_binary (io_lib:format ("~p.", [ OldIncAppFile ]))),
+  ErlFiles = [
+    % -------------------------------------------------------------------------
+    { "/sup-inc/ebin/erlrctestmakeappupinc.erl",
+      <<"
+-module (erlrctestmakeappupinc).
+-vsn (\"0.0.0\").
+-behaviour (application).
+-export ([ start/2, stop/1, version_change/2 ]).
 
-  OldIncApp = <<"
- -module (erlrctestmakeappupinc).
- -vsn (\"0.0.0\").
- -behaviour (application).
- -export ([ start/2, stop/1, version_change/2 ]).
+start (Type, Args) -> erlrctestmakeappup:start (Type, Args).
+stop (Arg) -> erlrctestmakeappup:stop (Arg).
 
- start (Type, Args) -> erlrctestmakeappup:start (Type, Args).
- stop (Arg) -> erlrctestmakeappup:stop (Arg).
+version_change (_From, _Extra) ->
+  case whereis (erlrctestmakeappupsrv) of
+    Pid when is_pid (Pid) ->
+      error_logger:info_msg (\"killing erlrctestmakeappupsrv ~p~n\", [Pid]),
+      MRef = erlang:monitor (process, Pid),
+      exit (Pid, shutdown),
+      receive { 'DOWN', MRef, _, _, _ } -> ok end,
+      ok;
+    _ ->
+      error_logger:info_msg (\"no erlrctestmakeappupsrv found~n\", []),
+      ok
+  end.
+">> },
+    % -------------------------------------------------------------------------
+    { "/sup-incnew/ebin/erlrctestmakeappupinc.erl",
+      <<"
+-module (erlrctestmakeappupinc).
+-vsn (\"0.0.1\").
+-behaviour (application).
+-export ([ start/2, stop/1, version_change/2 ]).
 
- version_change (_From, _Extra) ->
+start (_Type, _Args) -> { ok, spawn_link (fun () -> receive after infinity -> ok end end) }.
+stop (_Arg) -> ok.
+
+version_change (_From, _Extra) ->
   case whereis (erlrctestmakeappupsrv) of
     Pid when is_pid (Pid) ->
       error_logger:info_msg (\"killing erlrctestmakeappupsrv ~p~n\", [ Pid ]),
@@ -1098,71 +1123,10 @@ app_setup () ->
       error_logger:info_msg (\"no erlrctestmakeappupsrv found~n\", [ ]),
       ok
   end.
-">>,
-
-  ok =
-    file:write_file (Dir ++ "/sup-inc/ebin/erlrctestmakeappupinc.erl", OldIncApp),
-  os:cmd ("cd " ++ Dir ++ "/sup-inc/ebin && erlc erlrctestmakeappupinc.erl"),
-
-  NewIncAppFile = { application, supinc, [
-               { vsn, "0.0.1" },
-               { description, "yo" },
-               { registered, [ ] },
-               { applications, [ kernel, stdlib ] },
-               { modules, [ erlrctestmakeappupinc ] },
-               { included_applications, [ ] },
-               { mod, { erlrctestmakeappupinc, [] } }
-             ]
-           },
-
-  ok =
-    file:write_file
-      (Dir ++ "/sup-incnew/ebin/supinc.app",
-       erlang:iolist_to_binary (io_lib:format ("~p.", [ NewIncAppFile ]))),
-
-  NewIncApp = <<"
- -module (erlrctestmakeappupinc).
- -vsn (\"0.0.1\").
- -behaviour (application).
- -export ([ start/2, stop/1, version_change/2 ]).
-
- start (_Type, _Args) -> { ok, spawn_link (fun () -> receive after infinity -> ok end end) }.
- stop (_Arg) -> ok.
-
- version_change (_From, _Extra) ->
-  case whereis (erlrctestmakeappupsrv) of
-    Pid when is_pid (Pid) ->
-      error_logger:info_msg (\"killing erlrctestmakeappupsrv ~p~n\", [ Pid ]),
-      MRef = erlang:monitor (process, Pid),
-      exit (Pid, shutdown),
-      receive { 'DOWN', MRef, _, _, _ } -> ok end,
-      ok;
-    _ ->
-      error_logger:info_msg (\"no erlrctestmakeappupsrv found~n\", [ ]),
-      ok
-  end.
-">>,
-
-  ok =
-    file:write_file (Dir ++ "/sup-incnew/ebin/erlrctestmakeappupinc.erl", NewIncApp),
-  os:cmd ("cd " ++ Dir ++ "/sup-incnew/ebin && erlc erlrctestmakeappupinc.erl"),
-{ ok, _ } = file:read_file_info (Dir ++ "/sup-incnew/ebin/erlrctestmakeappupinc.beam"),
-
-  OldAppSpec =
-    { application,
-      sup,
-      [ { vsn, "0.0.0" },
-	{ description, "yo" },
-	{ registered, [ erlrctestmakeappupsup, erlrctestmakeappupsrv ] },
-	{ applications, [ kernel, stdlib ] },
-	{ modules, [ erlrctestmakeappupsup,
-		     erlrctestmakeappupsrv,
-		     erlrctestmakeappup ] },
-	{ mod, { erlrctestmakeappup, [] } }
-      ]
-    },
-
-  OldApp = <<"
+">> },
+    % -------------------------------------------------------------------------
+    { "/sup-old/ebin/erlrctestmakeappup.erl",
+      <<"
 -module (erlrctestmakeappup).
 -vsn (\"0.0.0\").
 -behaviour (application).
@@ -1170,117 +1134,34 @@ app_setup () ->
 
 start (_Type, _Args) -> erlrctestmakeappupsup:start_link ().
 stop (_) -> ok.
- ">>,
+">> },
+    % -------------------------------------------------------------------------
+    { "/sup-old/ebin/erlrctestmakeappupsup.erl", SupervisorErl },
+    % -------------------------------------------------------------------------
+    { "/sup-old/ebin/erlrctestmakeappupsrv.erl",
+      <<"
+-module (erlrctestmakeappupsrv).
+-vsn (\"0.0.0\").
+-export ([ start_link/0, get/0 ]).
+-export ([ init/1,
+           handle_call/3,
+           handle_cast/2,
+           handle_info/2,
+           terminate/2,
+           code_change/3 ]).
 
-  ok = file:write_file (Dir ++ "/sup-old/ebin/erlrctestmakeappup.erl", OldApp),
-  os:cmd ("cd " ++ Dir ++ "/sup-old/ebin && erlc erlrctestmakeappup.erl"),
-
-  AppSup = <<"
- -module (erlrctestmakeappupsup).
- -behavior (supervisor).
- -export ([ start_link/0, init/1 ]).
- init ([]) -> { ok, { { one_for_one, 3, 10 }, [ { erlrctestmakeappupsrv, { erlrctestmakeappupsrv, start_link, [ ] }, temporary, 10000, worker, [ erlrctestmakeappupsrv ] } ] } }.
- start_link () -> supervisor:start_link (?MODULE, []).
- ">>,
-
-  ok =
-    file:write_file (Dir ++ "/sup-old/ebin/erlrctestmakeappupsup.erl", AppSup),
-  os:cmd ("cd " ++ Dir ++ "/sup-old/ebin && erlc erlrctestmakeappupsup.erl"),
-
-  OldAppSrv = <<"
- -module (erlrctestmakeappupsrv).
- -vsn (\"0.0.0\").
- -export ([ start_link/0, get/0 ]).
- -export ([ init/1,
-            handle_call/3,
-            handle_cast/2,
-            handle_info/2,
-            terminate/2,
-            code_change/3 ]).
-
-  % Well, if i used Erlang to parse Erlang, instead of perl, I wouldn't have
-  % to play silly games like this.
-
- -define (START_LINK, gen_server:start_link).
- start_link () -> ?START_LINK ({ local, ?MODULE }, ?MODULE, [], []).
- get () -> gen_server:call (?MODULE, get).
- init ([]) -> { ok, { \"0.0.0\", init } }.
- handle_call (get, _, State) -> { reply, State, State }.
- handle_cast (_, State) -> { noreply, State }.
- handle_info (_, State) -> { noreply, State }.
- terminate (_, _) -> ok.
- code_change (OldVsn, State, Extra) -> { ok, { \"0.0.0\", { code_change, OldVsn } } }.">>,
-
-  NewAppSrv = <<"
- -module (erlrctestmakeappupsrv).
- -vsn (\"0.0.1\").
- -export ([ start_link/0, get/0 ]).
- -export ([ init/1,
-            handle_call/3,
-            handle_cast/2,
-            handle_info/2,
-            terminate/2,
-            code_change/3 ]).
-
-  % Well, if i used Erlang to parse Erlang, instead of perl, I wouldn't have
-  % to play silly games like this.
-
- -define (START_LINK, gen_server:start_link).
- start_link () -> ?START_LINK ({ local, ?MODULE }, ?MODULE, [], []).
- get () -> gen_server:call (?MODULE, get).
- init ([]) -> { ok, { \"0.0.1\", init } }.
- handle_call (get, _, State) -> { reply, State, State }.
- handle_cast (_, State) -> { noreply, State }.
- handle_info (_, State) -> { noreply, State }.
- terminate (_, _) -> ok.
- code_change (OldVsn, State, Extra) -> { ok, { \"0.0.1\", { code_change, OldVsn } } }.">>,
-
-  NewNewAppSrv = <<"
- -module (erlrctestmakeappupsrv).
- -vsn (\"0.0.2\").
- -export ([ start_link/0, get/0 ]).
- -export ([ init/1,
-            handle_call/3,
-            handle_cast/2,
-            handle_info/2,
-            terminate/2,
-            code_change/3 ]).
-
-  % Well, if i used Erlang to parse Erlang, instead of perl, I wouldn't have
-  % to play silly games like this.
-
- -define (START_LINK, gen_server:start_link).
- start_link () -> ?START_LINK ({ local, ?MODULE }, ?MODULE, [], []).
- get () -> gen_server:call (?MODULE, get).
- init ([]) -> { ok, { \"0.0.2\", init } }.
- handle_call (get, _, State) -> { reply, State, State }.
- handle_cast (_, State) -> { noreply, State }.
- handle_info (_, State) -> { noreply, State }.
- terminate (_, _) -> ok.
- code_change (OldVsn, State, Extra) -> { ok, { \"0.0.2\", { code_change, OldVsn } } }.">>,
-
-  ok =
-    file:write_file (Dir ++ "/sup-old/ebin/erlrctestmakeappupsrv.erl", OldAppSrv),
-  os:cmd ("cd " ++ Dir ++ "/sup-old/ebin && erlc erlrctestmakeappupsrv.erl"),
-
-  ok =
-    file:write_file (Dir ++ "/sup-old/ebin/sup.app",
-                     erlang:iolist_to_binary (io_lib:format ("~p.", [ OldAppSpec ]))),
-
-  NewAppSpec =
-    { application,
-      sup,
-      [ { vsn, "0.0.1" },
-	{ description, "yo" },
-	{ registered, [ erlrctestmakeappupsup, erlrctestmakeappupsrv ] },
-	{ applications, [ kernel, stdlib ] },
-	{ modules, [ erlrctestmakeappup, erlrctestmakeappupsup,
-		     erlrctestmakeappupsrv, erlrctestmakeappupdild ] },
-	{ mod, { erlrctestmakeappup, [] } }
-      ]
-    },
-
-  AppNew = <<"
+start_link () -> gen_server:start_link ({ local, ?MODULE }, ?MODULE, [], []).
+get () -> gen_server:call (?MODULE, get).
+init ([]) -> { ok, { \"0.0.0\", init } }.
+handle_call (get, _, State) -> { reply, State, State }.
+handle_cast (_, State) -> { noreply, State }.
+handle_info (_, State) -> { noreply, State }.
+terminate (_, _) -> ok.
+code_change (OldVsn, State, Extra) -> { ok, { \"0.0.0\", { code_change, OldVsn } } }.
+">> },
+    % -------------------------------------------------------------------------
+    { "/sup-new/ebin/erlrctestmakeappup.erl",
+      <<"
 -module (erlrctestmakeappup).
 -behaviour (application).
 -export ([ start/2, stop/1 ]).
@@ -1289,76 +1170,156 @@ stop (_) -> ok.
 start (_Type, _Args) -> erlrctestmakeappupsup:start_link ().
 stop (_) -> ok.
 flass () -> turg.
- ">>,
+">> },
+    % -------------------------------------------------------------------------
+    { "/sup-new/ebin/erlrctestmakeappupsup.erl", SupervisorErl },
+    % -------------------------------------------------------------------------
+    { "/sup-new/ebin/erlrctestmakeappupsrv.erl",
+      <<"
+-module (erlrctestmakeappupsrv).
+-vsn (\"0.0.1\").
+-export ([ start_link/0, get/0 ]).
+-export ([ init/1,
+           handle_call/3,
+           handle_cast/2,
+           handle_info/2,
+           terminate/2,
+           code_change/3 ]).
 
-  ok = file:write_file (Dir ++ "/sup-new/ebin/erlrctestmakeappup.erl", AppNew),
-  os:cmd ("cd " ++ Dir ++ "/sup-new/ebin && erlc erlrctestmakeappup.erl"),
-
-  ok =
-    file:write_file (Dir ++ "/sup-new/ebin/erlrctestmakeappupsup.erl", AppSup),
-
-  os:cmd ("cd " ++ Dir ++ "/sup-new/ebin && erlc erlrctestmakeappupsup.erl"),
-
-  ok =
-    file:write_file (Dir ++ "/sup-new/ebin/erlrctestmakeappupsrv.erl", NewAppSrv),
-
-  os:cmd ("cd " ++ Dir ++ "/sup-new/ebin && erlc erlrctestmakeappupsrv.erl"),
-
-  ok =
-    file:write_file (Dir ++ "/sup-new/ebin/erlrctestmakeappupdild.erl",
-                     <<"-module (erlrctestmakeappupdild).">>),
-
-  os:cmd ("cd " ++ Dir ++ "/sup-new/ebin && erlc erlrctestmakeappupdild.erl"),
-
-  ok =
-    file:write_file (Dir ++ "/sup-new/ebin/sup.app",
-                     erlang:iolist_to_binary
-                       (io_lib:format ("~p.", [ NewAppSpec ]))),
-
-  NewNewAppSpec = { application, sup, [
-               { vsn, "0.0.2" },
-               { description, "yo" },
-               { registered, [ erlrctestmakeappupsup, erlrctestmakeappupsrv ] },
-               { applications, [ kernel, stdlib ] },
-               { modules, [ erlrctestmakeappup, erlrctestmakeappupsup,
-                            erlrctestmakeappupsrv, erlrctestmakeappupdild ] },
-               { mod, { erlrctestmakeappup, [] } }
-             ]
-           },
-  AppNewNew = <<"
+start_link () -> gen_server:start_link ({ local, ?MODULE }, ?MODULE, [], []).
+get () -> gen_server:call (?MODULE, get).
+init ([]) -> { ok, { \"0.0.1\", init } }.
+handle_call (get, _, State) -> { reply, State, State }.
+handle_cast (_, State) -> { noreply, State }.
+handle_info (_, State) -> { noreply, State }.
+terminate (_, _) -> ok.
+code_change (OldVsn, State, Extra) -> { ok, { \"0.0.1\", { code_change, OldVsn } } }.
+">> },
+    % -------------------------------------------------------------------------
+    { "/sup-new/ebin/erlrctestmakeappupdild.erl",
+      <<"-module (erlrctestmakeappupdild).">> },
+    % -------------------------------------------------------------------------
+    { "/sup-newnew/ebin/erlrctestmakeappup.erl",
+      <<"
 -module (erlrctestmakeappup).
 -vsn (\"0.0.2\").
 -behaviour (application).
 -export ([ start/2, stop/1 ]).
--export ([ flass/0 ]).
 
 start (_Type, _Args) -> erlrctestmakeappupsup:start_link ().
 stop (_) -> ok.
- ">>,
+ ">> },
+    % -------------------------------------------------------------------------
+    { "/sup-newnew/ebin/erlrctestmakeappupsup.erl", SupervisorErl },
+    % -------------------------------------------------------------------------
+    { "/sup-newnew/ebin/erlrctestmakeappupsrv.erl",
+      <<"
+-module (erlrctestmakeappupsrv).
+-vsn (\"0.0.2\").
+-export ([ start_link/0, get/0 ]).
+-export ([ init/1,
+           handle_call/3,
+           handle_cast/2,
+           handle_info/2,
+           terminate/2,
+           code_change/3 ]).
 
-  ok = file:write_file (Dir ++ "/sup-newnew/ebin/erlrctestmakeappup.erl", AppNewNew),
-  os:cmd ("cd " ++ Dir ++ "/sup-newnew/ebin && erlc erlrctestmakeappup.erl"),
+start_link () -> gen_server:start_link ({ local, ?MODULE }, ?MODULE, [], []).
+get () -> gen_server:call (?MODULE, get).
+init ([]) -> { ok, { \"0.0.2\", init } }.
+handle_call (get, _, State) -> { reply, State, State }.
+handle_cast (_, State) -> { noreply, State }.
+handle_info (_, State) -> { noreply, State }.
+terminate (_, _) -> ok.
+code_change (OldVsn, State, Extra) -> { ok, { \"0.0.2\", { code_change, OldVsn } } }.
+">> },
+    % -------------------------------------------------------------------------
+    { "/sup-newnew/ebin/erlrctestmakeappupdild.erl",
+      <<"-module (erlrctestmakeappupdild).">> }
+    % -------------------------------------------------------------------------
+  ],
+  lists:foreach (fun ({ ErlPath, Binary }) ->
+		   ErlFile = Dir ++ ErlPath,
+		   SubDir = filename:dirname (ErlFile),
+		   ok = file:write_file (ErlFile, Binary),
+		   "ok" = os:cmd ("cd " ++ SubDir ++
+				  " && erlc -W0 " ++
+				    filename:basename (ErlFile) ++
+				  " && printf ok"),
+		   BeamFile = SubDir ++ "/" ++
+			      filename:basename (ErlFile, ".erl") ++ ".beam",
+		   { ok, _ } = file:read_file_info (BeamFile)
+		 end,
+		 ErlFiles),
 
-  ok =
-    file:write_file (Dir ++ "/sup-newnew/ebin/erlrctestmakeappupsup.erl", AppSup),
-
-  os:cmd ("cd " ++ Dir ++ "/sup-newnew/ebin && erlc erlrctestmakeappupsup.erl"),
-
-  ok =
-    file:write_file (Dir ++ "/sup-newnew/ebin/erlrctestmakeappupsrv.erl", NewNewAppSrv),
-
-  os:cmd ("cd " ++ Dir ++ "/sup-newnew/ebin && erlc erlrctestmakeappupsrv.erl"),
-
-  ok =
-    file:write_file (Dir ++ "/sup-newnew/ebin/erlrctestmakeappupdild.erl",
-                     <<"-module (erlrctestmakeappupdild).">>),
-
-  os:cmd ("cd " ++ Dir ++ "/sup-newnew/ebin && erlc erlrctestmakeappupdild.erl"),
-
-  ok =
-    file:write_file (Dir ++ "/sup-newnew/ebin/sup.app",
-                     erlang:iolist_to_binary
-                       (io_lib:format ("~p.", [ NewNewAppSpec ]))),
+  AppFiles = [
+    { "/sup-inc/ebin/supinc.app",
+      { application,
+	supinc,
+	[ { vsn, "0.0.0" },
+	  { description, "yo" },
+	  { registered, [ ] },
+	  { applications, [ kernel, stdlib ] },
+	  { modules, [ erlrctestmakeappupinc ] },
+	  { included_applications, [ sup ] },
+	  { mod, { erlrctestmakeappupinc, [] } }
+	] }
+    },
+    { "/sup-incnew/ebin/supinc.app",
+      { application,
+	supinc,
+	[ { vsn, "0.0.1" },
+	  { description, "yo" },
+	  { registered, [ ] },
+	  { applications, [ kernel, stdlib ] },
+	  { modules, [ erlrctestmakeappupinc ] },
+	  { included_applications, [ ] },
+	  { mod, { erlrctestmakeappupinc, [] } }
+	] }
+    },
+    { "/sup-old/ebin/sup.app",
+      { application,
+	sup,
+	[ { vsn, "0.0.0" },
+	  { description, "yo" },
+	  { registered, [ erlrctestmakeappupsup, erlrctestmakeappupsrv ] },
+	  { applications, [ kernel, stdlib ] },
+	  { modules, [ erlrctestmakeappupsup,
+		       erlrctestmakeappupsrv,
+		       erlrctestmakeappup ] },
+	  { mod, { erlrctestmakeappup, [] } }
+	] }
+    },
+    { "/sup-new/ebin/sup.app",
+      { application,
+	sup,
+	[ { vsn, "0.0.1" },
+	  { description, "yo" },
+	  { registered, [ erlrctestmakeappupsup, erlrctestmakeappupsrv ] },
+	  { applications, [ kernel, stdlib ] },
+	  { modules, [ erlrctestmakeappup, erlrctestmakeappupsup,
+		       erlrctestmakeappupsrv, erlrctestmakeappupdild ] },
+	  { mod, { erlrctestmakeappup, [] } }
+	] }
+    },
+    { "/sup-newnew/ebin/sup.app",
+      { application,
+	sup,
+	[ { vsn, "0.0.2" },
+	  { description, "yo" },
+	  { registered, [ erlrctestmakeappupsup, erlrctestmakeappupsrv ] },
+	  { applications, [ kernel, stdlib ] },
+	  { modules, [ erlrctestmakeappup, erlrctestmakeappupsup,
+		              erlrctestmakeappupsrv, erlrctestmakeappupdild ] },
+	  { mod, { erlrctestmakeappup, [] } }
+	] }
+    }
+  ],
+  lists:foreach (fun ({ AppPath, Spec }) ->
+		   B = erlang:iolist_to_binary (io_lib:format ("~p.", [Spec])),
+		   ok = file:write_file (Dir ++ AppPath, B)
+		 end,
+		 AppFiles),
 
   ok = file:make_dir (Dir ++ "/erlrc.d"),
   ok = file:make_dir (Dir ++ "/erlrc.d/applications"),
@@ -1382,10 +1343,6 @@ app_teardown (Dir) ->
   code:del_path (Dir ++ "/sup-new/ebin"),
   os:cmd ("rm -rf " ++ Dir),
   ok.
-
-%-=====================================================================-
-%-                                Tests                                -
-%-=====================================================================-
 
 make_appup_test_ () ->
   { setup,
