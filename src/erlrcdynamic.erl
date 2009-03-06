@@ -692,91 +692,23 @@ local_info_msg (Format, Args) ->
 
 make_appup (Application, EarlierVersion, LaterVersion, EarlierDir, LaterDir) ->
   case file:consult (EarlierDir ++ "/ebin/" ++
-                     atom_to_list (Application) ++ ".app") of
+                     atom_to_list (Application) ++ ".app")
+  of
     { ok, [ { application, Application, EarlierProps } ] } ->
       case vsn (EarlierProps) =:= EarlierVersion of
         true ->
           case file:consult (LaterDir ++ "/ebin/" ++
-                             atom_to_list (Application) ++ ".app") of
+                             atom_to_list (Application) ++ ".app")
+	  of
             { ok, [ { application, Application, LaterProps } ] } ->
               case vsn (LaterProps) =:= LaterVersion of
                 true ->
-                  AddMods = modules (LaterProps) -- modules (EarlierProps),
-                  DelMods = modules (EarlierProps) -- modules (LaterProps),
-
-                  { UpVersionChange, DownVersionChange } =
-                    case start_module (LaterProps) of
-                      { ok, StartMod, StartArgs } ->
-                        {
-                          [ D
-                            || BeamFile <- [ LaterDir ++ "/ebin/" ++
-                                             atom_to_list (StartMod) ++
-                                             ".beam" ],
-                               { ok, Beam } <- [ file:read_file (BeamFile) ],
-                               D <- version_change (Beam,
-                                                    EarlierVersion,
-                                                    StartMod,
-                                                    StartArgs) ],
-                          [ D
-                            || BeamFile <- [ LaterDir ++ "/ebin/" ++
-                                             atom_to_list (StartMod) ++
-                                             ".beam" ],
-                               { ok, Beam } <- [ file:read_file (BeamFile) ],
-                               D <- version_change (Beam,
-                                                    { down, EarlierVersion },
-                                                    StartMod,
-                                                    StartArgs) ]
-                        };
-                      undefined ->
-                        { [], [] }
-                    end,
-
-                  UpDirectives =
-                    [ D
-                      || M <- modules (LaterProps) -- AddMods,
-                         BeamFile <- [ LaterDir ++ "/ebin/" ++
-                                       atom_to_list (M) ++ ".beam" ],
-                         { ok, Beam } <- [ file:read_file (BeamFile) ],
-                         D <- upgrade_directives (EarlierVersion,
-                                                  LaterVersion,
-                                                  M,
-                                                  Beam) ],
-
-                  DownDirectives =
-                    [ D
-                      || M <- lists:reverse (modules (LaterProps) -- AddMods),
-                         BeamFile <- [ LaterDir ++ "/ebin/" ++
-                                       atom_to_list (M) ++ ".beam" ],
-                         { ok, Beam } <- [ file:read_file (BeamFile) ],
-                         D <- downgrade_directives (EarlierVersion,
-                                                    LaterVersion,
-                                                    M,
-                                                    Beam) ],
-
-                  AppUp =
-                    { LaterVersion,
-                      [ { EarlierVersion,
-                          [ { add_module, M } || M <- AddMods ] ++
-                          UpDirectives ++
-                          UpVersionChange ++
-                          [ { delete_module, M } || M <- DelMods ] } ],
-                      [ { EarlierVersion,
-                          [ { add_module, M }
-			    || M <- lists:reverse (DelMods) ] ++
-                          DownVersionChange ++
-                          DownDirectives ++
-                          [ { delete_module, M }
-			    || M <- lists:reverse (AddMods) ] } ]
-                    },
-
-                  local_info_msg ("make_appup/5: generated AppUp "
-                                  "for ~p ~p -> ~p~n~p~n",
-                                  [ Application,
-                                    EarlierVersion,
-                                    LaterVersion,
-                                    AppUp ]),
-
-                  { ok, AppUp };
+		  make_appup (Application,
+			      EarlierVersion,
+			      EarlierProps,
+			      LaterVersion,
+			      LaterDir,
+			      LaterProps);
                 false ->
                   { error, bad_new_appvsn }
               end;
@@ -789,6 +721,71 @@ make_appup (Application, EarlierVersion, LaterVersion, EarlierDir, LaterDir) ->
     _ ->
       { error, bad_old_appfile }
   end.
+
+make_appup (Application,
+	    EarlierVersion,
+	    EarlierProps,
+	    LaterVersion,
+	    LaterDir,
+	    LaterProps) ->
+  AddMods = modules (LaterProps) -- modules (EarlierProps),
+  DelMods = modules (EarlierProps) -- modules (LaterProps),
+
+  { UpVersionChange, DownVersionChange } =
+    case start_module (LaterProps) of
+      { ok, StartMod, StartArgs } ->
+	StartModBeamFile =
+	  LaterDir ++ "/ebin/" ++ atom_to_list (StartMod) ++ ".beam",
+	{ [ D
+	    || { ok, Beam } <- [ file:read_file (StartModBeamFile) ],
+	       D <- version_change (Beam,
+				    EarlierVersion,
+				    StartMod,
+				    StartArgs) ],
+	  [ D
+	    || { ok, Beam } <- [ file:read_file (StartModBeamFile) ],
+	       D <- version_change (Beam,
+				    { down, EarlierVersion },
+				    StartMod,
+				    StartArgs) ] };
+      undefined ->
+	{ [], [] }
+    end,
+
+  UpDirectives =
+    [ D
+      || M <- modules (LaterProps) -- AddMods,
+	 BeamFile <- [ LaterDir ++ "/ebin/" ++ atom_to_list (M) ++ ".beam" ],
+	 { ok, Beam } <- [ file:read_file (BeamFile) ],
+	 D <- upgrade_directives (EarlierVersion, LaterVersion, M, Beam) ],
+
+  DownDirectives =
+    [ D
+      || M <- lists:reverse (modules (LaterProps) -- AddMods),
+	 BeamFile <- [ LaterDir ++ "/ebin/" ++ atom_to_list (M) ++ ".beam" ],
+	 { ok, Beam } <- [ file:read_file (BeamFile) ],
+	 D <- downgrade_directives (EarlierVersion, LaterVersion, M, Beam) ],
+
+  AppUp =
+    { LaterVersion,
+      [ { EarlierVersion,
+	  [ { add_module, M } || M <- AddMods ]
+	  ++ UpDirectives
+	  ++ UpVersionChange
+	  ++ [ { delete_module, M } || M <- DelMods ]
+	}
+      ],
+      [ { EarlierVersion,
+	  [ { add_module, M } || M <- lists:reverse (DelMods) ]
+	  ++ DownVersionChange
+	  ++ DownDirectives
+	  ++ [ { delete_module, M } || M <- lists:reverse (AddMods) ]
+	}
+      ]
+    },
+  local_info_msg ("make_appup/6: generated AppUp for ~p ~p -> ~p~n~p~n",
+		  [ Application, EarlierVersion, LaterVersion, AppUp ]),
+  { ok, AppUp }.
 
 maybe_make_appup (Application,
 		  EarlierVersion,
@@ -819,10 +816,8 @@ modules (Props) ->
 
 should_run (Root, A) ->
   case file:read_file_info (Root ++ "/applications/" ++ atom_to_list (A)) of
-    { ok, _ } ->
-      true;
-    _ ->
-      false
+    { ok, _ } -> true;
+    _         -> false
   end.
 
 start_module (Props) ->
@@ -867,76 +862,8 @@ vsn (Props) ->
   Vsn.
 
 %-=====================================================================-
-%-                    Extracted from release_handler                   -
-%-                                                                     -
-%- Modified to take an appup spec directly, to avoid filesystem        -
-%- permissions problems.                                               -
+%-                     Save and restore code state                     -
 %-=====================================================================-
-
-downgrade_app (App, AppUp, OldVsn, OldDir, NewVsn, NewDir) ->
-  try downgrade_script (App, AppUp, OldVsn, OldDir, NewVsn, NewDir) of
-    { ok, Script } ->
-      release_handler:eval_appup_script (App, OldVsn, OldDir, Script)
-  catch
-    throw:Reason -> {error, Reason}
-  end.
-
-downgrade_script (App, AppUp, OldVsn, OldDir, NewVsn, NewDir) ->
-  { NewVsn, Script } = find_script (AppUp, OldVsn, down),
-  OldAppl = read_app (App, OldVsn, OldDir),
-  NewAppl = read_app (App, NewVsn, NewDir),
-  case systools_rc:translate_scripts(dn, [Script], [OldAppl], [NewAppl]) of
-    { ok, LowLevelScript }         -> { ok, LowLevelScript };
-    { error, _SystoolsRC, Reason } -> throw (Reason)
-  end.
-
-upgrade_app(App, AppUp, OldVsn, OldDir, NewVsn, NewDir) ->
-  try upgrade_script (App, AppUp, OldVsn, OldDir, NewVsn, NewDir) of
-    { ok, NewVsn, Script } ->
-      release_handler:eval_appup_script (App, NewVsn, NewDir, Script)
-  catch
-    throw:Reason -> { error, Reason }
-  end.
-
-upgrade_script(App, AppUp, OldVsn, OldDir, NewVsn, NewDir) ->
-  { NewVsn, Script } = find_script (AppUp, OldVsn, up),
-  OldAppl = read_app (App, OldVsn, OldDir),
-  NewAppl = read_app (App, NewVsn, NewDir),
-  case systools_rc:translate_scripts (up, [Script], [NewAppl], [OldAppl]) of
-    { ok, LowLevelScript }         -> { ok, NewVsn, LowLevelScript };
-    { error, _SystoolsRC, Reason } -> throw (Reason)
-  end.
-
-find_script (AppUp, OldVsn, UpOrDown) ->
-  case AppUp of
-    { NewVsn, UpFromScripts, DownToScripts } ->
-      Scripts = case UpOrDown of
-		  up   -> UpFromScripts;
-		  down -> DownToScripts
-		end,
-      case lists:keysearch (OldVsn, 1, Scripts) of
-	{ value, { _OldVsn, Script } } ->
-	  { NewVsn, Script };
-	false ->
-	  throw ({ version_not_in_appup, OldVsn })
-      end
-  end.
-
-read_app (App, Vsn, Dir) ->
-  AppS = atom_to_list (App),
-  Path = [ filename:join (Dir, "ebin") ],
-  case systools_make:read_application (AppS, Vsn, Path, []) of
-    { ok, Appl } ->
-      Appl;
-    { error, { not_found, _AppFile } } ->
-      throw ({ no_app_found, Vsn, Dir });
-    { error, Reason } ->
-      throw (Reason)
-  end.
-
-%
-% save and restore code state
-%
 
 protect_state (F) ->
   % { error, _ } is always considered an error
@@ -1042,6 +969,74 @@ restore_mods ([], [], Actions) ->
 	       end,
 	       [],
 	       Actions).
+
+%-=====================================================================-
+%-                    Extracted from release_handler                   -
+%-                                                                     -
+%- Modified to take an appup spec directly, to avoid filesystem        -
+%- permissions problems.                                               -
+%-=====================================================================-
+
+downgrade_app (App, AppUp, OldVsn, OldDir, NewVsn, NewDir) ->
+  try downgrade_script (App, AppUp, OldVsn, OldDir, NewVsn, NewDir) of
+    { ok, Script } ->
+      release_handler:eval_appup_script (App, OldVsn, OldDir, Script)
+  catch
+    throw:Reason -> {error, Reason}
+  end.
+
+downgrade_script (App, AppUp, OldVsn, OldDir, NewVsn, NewDir) ->
+  { NewVsn, Script } = find_script (AppUp, OldVsn, down),
+  OldAppl = read_app (App, OldVsn, OldDir),
+  NewAppl = read_app (App, NewVsn, NewDir),
+  case systools_rc:translate_scripts(dn, [Script], [OldAppl], [NewAppl]) of
+    { ok, LowLevelScript }         -> { ok, LowLevelScript };
+    { error, _SystoolsRC, Reason } -> throw (Reason)
+  end.
+
+upgrade_app(App, AppUp, OldVsn, OldDir, NewVsn, NewDir) ->
+  try upgrade_script (App, AppUp, OldVsn, OldDir, NewVsn, NewDir) of
+    { ok, NewVsn, Script } ->
+      release_handler:eval_appup_script (App, NewVsn, NewDir, Script)
+  catch
+    throw:Reason -> { error, Reason }
+  end.
+
+upgrade_script(App, AppUp, OldVsn, OldDir, NewVsn, NewDir) ->
+  { NewVsn, Script } = find_script (AppUp, OldVsn, up),
+  OldAppl = read_app (App, OldVsn, OldDir),
+  NewAppl = read_app (App, NewVsn, NewDir),
+  case systools_rc:translate_scripts (up, [Script], [NewAppl], [OldAppl]) of
+    { ok, LowLevelScript }         -> { ok, NewVsn, LowLevelScript };
+    { error, _SystoolsRC, Reason } -> throw (Reason)
+  end.
+
+find_script (AppUp, OldVsn, UpOrDown) ->
+  case AppUp of
+    { NewVsn, UpFromScripts, DownToScripts } ->
+      Scripts = case UpOrDown of
+		  up   -> UpFromScripts;
+		  down -> DownToScripts
+		end,
+      case lists:keysearch (OldVsn, 1, Scripts) of
+	{ value, { _OldVsn, Script } } ->
+	  { NewVsn, Script };
+	false ->
+	  throw ({ version_not_in_appup, OldVsn })
+      end
+  end.
+
+read_app (App, Vsn, Dir) ->
+  AppS = atom_to_list (App),
+  Path = [ filename:join (Dir, "ebin") ],
+  case systools_make:read_application (AppS, Vsn, Path, []) of
+    { ok, Appl } ->
+      Appl;
+    { error, { not_found, _AppFile } } ->
+      throw ({ no_app_found, Vsn, Dir });
+    { error, Reason } ->
+      throw (Reason)
+  end.
 
 %-=====================================================================-
 %-                                Tests                                -
