@@ -1,5 +1,8 @@
 =Version 0.1.2 [NOT YET RELEASED]=
   * erlrcdynamic tests verify that correct module version was called
+  * erlrcdynamic:unload now calls application:unload
+  * erlrcdynamic functions now attempt to preserve the code path and
+    set of loaded modules when an error occurs
 
 =Version 0.1.1=
   * recognize buggy r12 release_handler as well
