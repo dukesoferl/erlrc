@@ -871,8 +871,10 @@ protect_state (F) ->
 
 protect_state (F, IsError) ->
   State = save_state (),
-  Result = try
-	     F ()
+  Result = try F () of
+	     % hmm
+	     { 'EXIT', Error } -> { error, Error };
+	     R -> R
 	   catch
 	     _:Error -> { error, Error }
 	   end,
@@ -961,7 +963,8 @@ restore_mods ([], [], Actions) ->
 		    end;
 		 ({ Mod, { load, Path } }, Errors) ->
 		   Ext = code_aux:objfile_extension (),
-		   Base = filename:basename (Path, Ext),
+		   Base = filename:dirname (Path) ++ "/" ++
+			  filename:basename (Path, Ext),
 		   case code:load_abs (Base) of
 		     { module, Mod } -> Errors;
 		     Error           -> [ { Mod, Error } | Errors ]
@@ -1049,16 +1052,6 @@ app_setup () ->
   Dir = "erlrcmakeappuptest" ++ OsPid,
   os:cmd ("rm -rf " ++ Dir),
   ok = file:make_dir (Dir),
-  ok = file:make_dir (Dir ++ "/sup-old"),
-  ok = file:make_dir (Dir ++ "/sup-old/ebin"),
-  ok = file:make_dir (Dir ++ "/sup-new"),
-  ok = file:make_dir (Dir ++ "/sup-new/ebin"),
-  ok = file:make_dir (Dir ++ "/sup-newnew"),
-  ok = file:make_dir (Dir ++ "/sup-newnew/ebin"),
-  ok = file:make_dir (Dir ++ "/sup-inc"),
-  ok = file:make_dir (Dir ++ "/sup-inc/ebin"),
-  ok = file:make_dir (Dir ++ "/sup-incnew"),
-  ok = file:make_dir (Dir ++ "/sup-incnew/ebin"),
 
   % ---------------------------------------------------------------------------
   SupervisorErl = <<"
@@ -1230,11 +1223,101 @@ code_change (OldVsn, State, Extra) -> { ok, { \"0.0.2\", { code_change, OldVsn }
 ">> },
     % -------------------------------------------------------------------------
     { "/sup-newnew/ebin/erlrctestmakeappupdild.erl",
-      <<"-module (erlrctestmakeappupdild).">> }
+      <<"-module (erlrctestmakeappupdild).">> },
+    % -------------------------------------------------------------------------
+    { "/borken-old/ebin/borken.erl",
+      <<"
+-module (borken).
+-vsn (\"0.0.0\").
+-behaviour (application).
+-export ([ start/2, stop/1 ]).
+
+start (_Type, _Args) -> borkensup:start_link ().
+stop (_) -> ok.
+">> },
+    % -------------------------------------------------------------------------
+    { "/borken-old/ebin/borkensup.erl",
+      <<"
+-module (borkensup).
+-vsn (\"0.0.0\").
+-behavior (supervisor).
+-export ([ start_link/0, init/1 ]).
+
+start_link () -> supervisor:start_link (?MODULE, []).
+init ([]) -> { ok, { { one_for_one, 3, 10 }, [ { borkensrv, { borkensrv, start_link, [ ] }, temporary, 10000, worker, [ borkensrv ] } ] } }.
+">> },
+    % -------------------------------------------------------------------------
+    { "/borken-old/ebin/borkensrv.erl",
+      <<"
+-module (borkensrv).
+-vsn (\"0.0.0\").
+-export ([ start_link/0, get/0 ]).
+-export ([ init/1,
+           handle_call/3,
+           handle_cast/2,
+           handle_info/2,
+           terminate/2,
+           code_change/3 ]).
+
+start_link () -> gen_server:start_link ({ local, ?MODULE }, ?MODULE, [], []).
+get () -> gen_server:call (?MODULE, get).
+init ([]) -> { ok, { \"0.0.0\", init } }.
+handle_call (get, _, State) -> { reply, State, State }.
+handle_cast (_, State) -> { noreply, State }.
+handle_info (_, State) -> { noreply, State }.
+terminate (_, _) -> ok.
+code_change (OldVsn, State, Extra) -> { ok, State }.
+">> },
+    % -------------------------------------------------------------------------
+    { "/borken-new/ebin/borken.erl",
+      <<"
+-module (borken).
+-vsn (\"0.0.1\").
+-behaviour (application).
+-export ([ start/2, stop/1 ]).
+
+start (_Type, _Args) -> borkensup:start_link ().
+stop (_) -> ok.
+">> },
+    % -------------------------------------------------------------------------
+    { "/borken-new/ebin/borkensup.erl",
+      <<"
+-module (borkensup).
+-vsn (\"0.0.1\").
+-behavior (supervisor).
+-export ([ start_link/0, init/1 ]).
+
+start_link () -> supervisor:start_link (?MODULE, []).
+init ([]) -> { ok, { { one_for_one, 3, 10 }, [ { borkensrv, { borkensrv, start_link, [ ] }, temporary, 10000, worker, [ borkensrv ] } ] } }.
+">> },
+    % -------------------------------------------------------------------------
+    { "/borken-new/ebin/borkensrv.erl",
+      <<"
+-module (borkensrv).
+-vsn (\"0.0.1\").
+-export ([ start_link/0, get/0 ]).
+-export ([ init/1,
+           handle_call/3,
+           handle_cast/2,
+           handle_info/2,
+           terminate/2,
+           code_change/3 ]).
+
+start_link () -> gen_server:start_link ({ local, ?MODULE }, ?MODULE, [], []).
+get () -> gen_server:call (?MODULE, get).
+init ([]) -> { ok, { \"0.0.1\", init } }.
+handle_call (get, _, State) -> { reply, State, State }.
+handle_cast (_, State) -> { noreply, State }.
+handle_info (_, State) -> { noreply, State }.
+terminate (_, _) -> ok.
+%code_change (OldVsn, State, Extra) -> erlang:error (borken).
+code_change (OldVsn, State, Extra) -> borken.
+">> }
     % -------------------------------------------------------------------------
   ],
   lists:foreach (fun ({ ErlPath, Binary }) ->
 		   ErlFile = Dir ++ ErlPath,
+		   ok = filelib:ensure_dir (ErlFile),
 		   SubDir = filename:dirname (ErlFile),
 		   ok = file:write_file (ErlFile, Binary),
 		   "ok" = os:cmd ("cd " ++ SubDir ++
@@ -1308,6 +1391,28 @@ code_change (OldVsn, State, Extra) -> { ok, { \"0.0.2\", { code_change, OldVsn }
 		              erlrctestmakeappupsrv, erlrctestmakeappupdild ] },
 	  { mod, { erlrctestmakeappup, [] } }
 	] }
+    },
+    { "/borken-old/ebin/borken.app",
+      { application,
+	borken,
+	[ { vsn, "0.0.0" },
+	  { description, "borken" },
+	  { registered, [ borkensup, borkensrv ] },
+	  { applications, [ kernel, stdlib ] },
+	  { modules, [ borken, borkensup, borkensrv ] },
+	  { mod, { borken, [] } }
+	] }
+    },
+    { "/borken-new/ebin/borken.app",
+      { application,
+	borken,
+	[ { vsn, "0.0.1" },
+	  { description, "borken" },
+	  { registered, [ borkensup, borkensrv ] },
+	  { applications, [ kernel, stdlib ] },
+	  { modules, [ borken, borkensup, borkensrv ] },
+	  { mod, { borken, [] } }
+	] }
     }
   ],
   lists:foreach (fun ({ AppPath, Spec }) ->
@@ -1328,14 +1433,26 @@ app_teardown (Dir) ->
   application:unload (supinc),
   application:stop (sup),
   application:unload (sup),
-  lists:foreach (fun (M) -> code:purge (M), code:delete (M) end,
-                 [ erlrctestmakeappup, erlrctestmakeappupsup,
-                   erlrctestmakeappupsrv, erlrctestmakeappupdild,
-                   erlrctestmakeappupinc ]),
+  application:stop (borken),
+  application:unload (borken),
+  lists:foreach (fun (M) ->
+		   code:purge (M),
+		   code:delete (M)
+		 end,
+                 [ erlrctestmakeappup,
+		   erlrctestmakeappupsup,
+                   erlrctestmakeappupsrv,
+		   erlrctestmakeappupdild,
+		   erlrctestmakeappupinc,
+		   borken,
+		   borkensup,
+		   borkensrv ]),
   code:del_path (Dir ++ "/sup-incnew/ebin"),
   code:del_path (Dir ++ "/sup-inc/ebin"),
   code:del_path (Dir ++ "/sup-old/ebin"),
   code:del_path (Dir ++ "/sup-new/ebin"),
+  code:del_path (Dir ++ "/borken-old/ebin"),
+  code:del_path (Dir ++ "/borken-new/ebin"),
   os:cmd ("rm -rf " ++ Dir),
   ok.
 
@@ -1487,7 +1604,8 @@ upgrade_test_ () ->
         lists:keysearch (sup, 1, application:which_applications ()),
       { "0.0.1", { code_change, "0.0.0" } } = erlrctestmakeappupsrv:get (),
       ok
-    end }.
+    end
+  }.
 
 upgrade_existing_appup_test_ () ->
   { setup,
@@ -1743,5 +1861,28 @@ downgrade_including_test_ () ->
       stopped = stop (sup, "0.0.0"),
       ok
     end }.
+
+borken_upgrade_test_ () ->
+  { setup,
+    fun app_setup/0,
+    fun app_teardown/1,
+    fun () ->
+      OsPid = os:getpid (),
+      Dir = "erlrcmakeappuptest" ++ OsPid,
+      started = start (borken, "0.0.0", Dir ++ "/borken-old"),
+      { value, { borken, _, "0.0.0" } } =
+        lists:keysearch (borken, 1, application:which_applications ()),
+      { "0.0.0", init } = borkensrv:get (),
+      State0 = save_state (),
+      { error, _ } = erlrcdynamic:upgrade (borken,
+					   "0.0.0",
+					   "0.0.1",
+					   Dir ++ "/borken-old",
+					   Dir ++ "/borken-new"),
+      State1 = save_state (),
+      true = (State1 =:= State0),
+      ok
+    end
+  }.
 
 -endif.
