@@ -1269,6 +1269,14 @@ terminate (_, _) -> ok.
 code_change (OldVsn, State, Extra) -> { ok, State }.
 ">> },
     % -------------------------------------------------------------------------
+    { "/borken-old/ebin/borkencrud.erl",
+      <<"
+-module (borkencrud).
+-vsn (\"0.0.0\").
+-export ([ foo/0 ]).
+foo () -> foo.
+">> },
+    % -------------------------------------------------------------------------
     { "/borken-new/ebin/borken.erl",
       <<"
 -module (borken).
@@ -1312,8 +1320,15 @@ handle_info (_, State) -> { noreply, State }.
 terminate (_, _) -> ok.
 %code_change (OldVsn, State, Extra) -> erlang:error (borken).
 code_change (OldVsn, State, Extra) -> borken.
-">> }
+">> },
     % -------------------------------------------------------------------------
+    { "/borken-new/ebin/borkenstuff.erl",
+      <<"
+-module (borkenstuff).
+-vsn (\"0.0.1\").
+-export ([ foo/0 ]).
+foo () -> foo.
+">> }
   ],
   lists:foreach (fun ({ ErlPath, Binary }) ->
 		   ErlFile = Dir ++ ErlPath,
@@ -1399,7 +1414,7 @@ code_change (OldVsn, State, Extra) -> borken.
 	  { description, "borken" },
 	  { registered, [ borkensup, borkensrv ] },
 	  { applications, [ kernel, stdlib ] },
-	  { modules, [ borken, borkensup, borkensrv ] },
+	  { modules, [ borken, borkensup, borkensrv, borkencrud ] },
 	  { mod, { borken, [] } }
 	] }
     },
@@ -1410,7 +1425,7 @@ code_change (OldVsn, State, Extra) -> borken.
 	  { description, "borken" },
 	  { registered, [ borkensup, borkensrv ] },
 	  { applications, [ kernel, stdlib ] },
-	  { modules, [ borken, borkensup, borkensrv ] },
+	  { modules, [ borken, borkensup, borkensrv, borkenstuff ] },
 	  { mod, { borken, [] } }
 	] }
     }
