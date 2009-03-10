@@ -1,4 +1,4 @@
-=Version 0.1.2 [NOT YET RELEASED]=
+=Version 0.1.2=
   * erlrcdynamic tests verify that correct module version was called
   * erlrcdynamic:unload now calls application:unload
   * erlrcdynamic functions now attempt to preserve the code path and
@@ -10,7 +10,7 @@
 	happily the same patch works for both
 
 =Version 0.1.0=
-  * app override files are now merged with primarry app file
+  * app override files are now merged with primary app file
   * app overrides have syntax to control merging with app file
 
 =Version 0.0.17=
