@@ -1,0 +1,3 @@
+- don't allow override of module or version portions of app spec ... would cause havoc with appup computation
+
+I'm in ur Erlang upgrading ur applicationz

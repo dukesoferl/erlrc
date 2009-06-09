@@ -1,0 +1,98 @@
+#! /usr/bin/env escript
+% vim: filetype=erlang
+
+-mode (compile).
+
+check_for_erlrcdynamic () ->
+  case code:ensure_loaded (erlrcdynamic) of
+    { module, erlrcdynamic } -> 
+      ok;
+    { error, What } ->
+      Stderr = open_port ({ fd, 0, 2 }, [ out ]),
+      port_command 
+        (Stderr, 
+         io_lib:format ("error: can't load erlrcdynamic: ~p~n", [ What ])),
+      port_command 
+        (Stderr,
+         "error: this script will not work unless erlrc is installed\n"),
+      timer:sleep (10),
+      erlang:halt (1)
+  end.
+
+check_file_exists (File) ->
+  case file:read_file_info (File) of
+    { ok, _ } -> ok;
+    { error, Reason } ->
+      Stderr = open_port ({ fd, 0, 2 }, [ out ]),
+      port_command 
+        (Stderr, 
+         io_lib:format ("error: can't find file ~s: ~p~n", [ File, Reason ])),
+      timer:sleep (10),
+      erlang:halt (1)
+  end.
+
+nice_error ([ AppName, EarlierVersion, _, EarlierDir, _], bad_old_appvsn) ->
+  io_lib:format ("The (earlier) application version listed in ~s/ebin/~s.app is not consistent with the command line value ~s~n",
+                 [ EarlierDir, AppName, EarlierVersion ]);
+nice_error ([ AppName, _, LaterVersion, _, LaterDir], bad_new_appvsn) ->
+  io_lib:format ("The (later) application version listed in ~s/ebin/~s.app is not consistent with the command line value ~s~n",
+                 [ LaterDir, AppName, LaterVersion ]);
+nice_error ([ AppName, _, _, EarlierDir, _], bad_old_appfile) ->
+  io_lib:format ("Either ~s/ebin/~s.app is not a valid app file or it is not readable.~n",
+                 [ EarlierDir, AppName ]);
+nice_error ([ AppName, _, _, _, LaterDir], bad_new_appfile) ->
+  io_lib:format ("Either ~s/ebin/~s.app is not a valid app file or it is not readable.~n",
+                 [ LaterDir, AppName ]);
+nice_error (_, X) ->
+  io_lib:format ("Sorry, I don't have a nice explanation for ~p~n", [ X ]).
+
+main (Args=[ AppName, EarlierVersion, LaterVersion, EarlierDir, LaterDir ]) ->
+  error_logger:tty (false),
+  check_for_erlrcdynamic (),
+  check_file_exists (EarlierDir ++ "/ebin/" ++ AppName ++ ".app"),
+  check_file_exists (LaterDir ++ "/ebin/" ++ AppName ++ ".app"),
+  case erlrcdynamic:make_appup (list_to_atom (AppName),
+                                EarlierVersion,
+                                LaterVersion,
+                                EarlierDir,
+                                LaterDir) of
+    { ok, AppUp } ->
+      Stdout = open_port ({ fd, 0, 1 }, [ out ]),
+      port_command (Stdout, io_lib:format ("~p.~n", [ AppUp ])),
+      timer:sleep (10),
+      erlang:halt (0);
+    { error, What } ->
+      Stderr = open_port ({ fd, 0, 2 }, [ out ]),
+      port_command 
+        (Stderr, 
+         io_lib:format ("error: can't compute appup: ~p~n", [ What ])),
+      port_command (Stderr, nice_error (Args, What)),
+      timer:sleep (10),
+      erlang:halt (1)
+  end;
+main (_) ->
+  Stderr = open_port ({ fd, 0, 2 }, [ out ]),
+  port_command (Stderr,
+                "usage: erlrc-makeappup appname earlierversion laterversion earlierdir laterdir\n"
+                "\n"
+                "  print to standard out an erlang evalable string corresponding to\n"
+                "  the contents of an appup file appropriate for upgrading or downgrading the\n"
+                "  given application from the stated earlier version to stated later version,\n"
+                "  where the former is found in earlierdir and the latter in laterdir.\n"
+                "\n"
+                "example:\n"
+                "  erlrc-makeappup erlrc 0.0.15 0.2.0 /usr/lib/erlang/lib/erlrc-0.0.15/ /usr/lib/erlang/lib/erlrc-0.2.0/\n"
+                "\n"
+                "options:\n"
+                "  appname: the name of the application to upgrade/downgrade\n"
+                "\n"
+                "  earlierversion: the version being upgraded from or downgraded to\n"
+                "\n"
+                "  laterversion: the version being upgraded to or downgraded from\n"
+                "\n"
+                "  earlierdir: directory for the earlier version on the filesystem\n"
+                "\n"
+                "  laterdir: directory for the later version on the filesystem\n"
+                "\n"),
+  timer:sleep (10),
+  erlang:halt (1).
