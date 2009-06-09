@@ -22,7 +22,7 @@ FW_PACKAGE_REPLACES=""
 FW_PACKAGE_BUILD_DEPENDS="eunit, n54-dupload-conf"
 FW_PACKAGE_BUILD_CONFLICTS=""
 
-FW_SUBVERSION_TAG_ROOT="https://erlrc.googlecode.com/svn/tags/"
+FW_SUBVERSION_TAG_ROOT="https://erlrc.googlecode.com/svn/tags/erlrc/"
 
 FW_DUPLOAD_ARGS=${FW_DUPLOAD_ARGS-"-t dukes"}
 
