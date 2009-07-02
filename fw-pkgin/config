@@ -2,7 +2,7 @@
 # environment variable FW_PACKAGE_DEFAULT_MAINTAINER if non-empty
 
 FW_PACKAGE_NAME="erlrc"
-FW_PACKAGE_VERSION="0.2.1"
+FW_PACKAGE_VERSION="0.2.2"
 FW_PACKAGE_MAINTAINER="Paul Mineiro <paul-fw@mineiro.com>"
 FW_PACKAGE_SHORT_DESCRIPTION="Extensible application management."
 FW_PACKAGE_DESCRIPTION=`cat README`
@@ -19,7 +19,7 @@ FW_PACKAGE_CONFLICTS=""
 FW_PACKAGE_PROVIDES=""
 FW_PACKAGE_REPLACES=""
 
-FW_PACKAGE_BUILD_DEPENDS="eunit, n54-dupload-conf"
+FW_PACKAGE_BUILD_DEPENDS="eunit"
 FW_PACKAGE_BUILD_CONFLICTS=""
 
 FW_SUBVERSION_TAG_ROOT="https://erlrc.googlecode.com/svn/tags/erlrc/"

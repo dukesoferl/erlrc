@@ -669,7 +669,7 @@ downgrade_directives (EarlierVersion, LaterVersion, M, Beam) ->
       downgrade_directives_supervisor (EarlierVersion, LaterVersion, M, Beam);
     false ->
       case has_code_change (Beam) of
-        true  -> [ { update, M, { advanced, [] } } ];
+        true  -> [ { update, M, infinity, { advanced, [] }, brutal_purge, brutal_purge, [] } ];
         false -> [ { load_module, M } ]
       end
   end.
@@ -841,7 +841,7 @@ upgrade_directives (EarlierVersion, LaterVersion, M, Beam) ->
       upgrade_directives_supervisor (EarlierVersion, LaterVersion, M, Beam);
     false ->
       case has_code_change (Beam) of
-        true  -> [ { update, M, { advanced, [] } } ];
+        true  -> [ { update, M, infinity, { advanced, [] }, brutal_purge, brutal_purge, [] } ];
         false -> [ { load_module, M } ]
       end
   end.
@@ -969,7 +969,7 @@ restore_mods ([], [], Actions) ->
 		      false -> [ { Mod, delete_failed } | Errors ]
 		    end;
 		 ({ Mod, { load, Path } }, Errors) ->
-		   Ext = code_aux:objfile_extension (),
+		   Ext = code:objfile_extension (),
 		   Base = filename:dirname (Path) ++ "/" ++
 			  filename:basename (Path, Ext),
 		   case code:load_abs (Base) of
@@ -1497,10 +1497,10 @@ make_appup_test_ () ->
                     [ { add_module, erlrctestmakeappupdild },
                       { load_module, erlrctestmakeappup },
                       { update, erlrctestmakeappupsup, supervisor },
-                      { update, erlrctestmakeappupsrv, { advanced, [] } } ]
+                      { update, erlrctestmakeappupsrv, infinity, { advanced, [] }, brutal_purge, brutal_purge, [] } ]
                   } ],
                 [ { "0.0.0",
-                    [ { update, erlrctestmakeappupsrv, { advanced, [] } },
+                    [ { update, erlrctestmakeappupsrv, infinity, { advanced, [] }, brutal_purge, brutal_purge, [] },
                       { update, erlrctestmakeappupsup, supervisor },
                       { load_module, erlrctestmakeappup },
                       { delete_module, erlrctestmakeappupdild } ]
@@ -1648,7 +1648,7 @@ upgrade_existing_appup_test_ () ->
     {update,erlrctestmakeappupsup,supervisor},
     {load_module,erlrctestmakeappupsrv}]}],
  [{\"0.0.0\",
-   [{update,erlrctestmakeappupsrv,{advanced,[]}},
+   [{update,erlrctestmakeappupsrv,infinity,{advanced,[]},brutal_purge,brutal_purge,[]},
     {update,erlrctestmakeappupsup,supervisor},
     {load_module,erlrctestmakeappup},
     {delete_module,erlrctestmakeappupdild}]}]}.">>,

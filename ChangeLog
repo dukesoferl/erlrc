@@ -1,3 +1,7 @@
+=Version 0.2.2=
+  * infinity timeout for advanced upgrade directives
+  * objfile_extension/0 lives in code
+
 =Version 0.2.1= 
   * add trailing '.' to output of erlrc-makeappup script 
 
