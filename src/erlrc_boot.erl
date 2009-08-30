@@ -253,6 +253,8 @@ start_apps (AppsToStart, AppsStarted, AppToSpec, IncludedBy) ->
 	  case application:start (App) of
 	    ok ->
 	      ok;
+            { error, { already_started, App } } ->
+              ok;
 	    { error, StartReason } ->
 	      throw ({ start_failed, App, StartReason })
 	  end

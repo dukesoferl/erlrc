@@ -2,7 +2,7 @@
 # environment variable FW_PACKAGE_DEFAULT_MAINTAINER if non-empty
 
 FW_PACKAGE_NAME="erlrc"
-FW_PACKAGE_VERSION="0.2.2"
+FW_PACKAGE_VERSION="0.2.3"
 FW_PACKAGE_MAINTAINER="Paul Mineiro <paul-fw@mineiro.com>"
 FW_PACKAGE_SHORT_DESCRIPTION="Extensible application management."
 FW_PACKAGE_DESCRIPTION=`cat README`
@@ -24,7 +24,7 @@ FW_PACKAGE_BUILD_CONFLICTS=""
 
 FW_SUBVERSION_TAG_ROOT="https://erlrc.googlecode.com/svn/tags/erlrc/"
 
-FW_DUPLOAD_ARGS=${FW_DUPLOAD_ARGS-"-t dukes"}
+FW_DUPLOAD_ARGS=${FW_DUPLOAD_ARGS-"-t dukeshardy"}
 
 # uncomment and set manually if autodetection of modules is incorrect
 # FW_ERL_APP_MODULES=""

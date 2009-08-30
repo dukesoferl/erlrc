@@ -1,3 +1,6 @@
+=Version 0.2.3=
+  * already_started error is ok for application start return value
+
 =Version 0.2.2=
   * infinity timeout for advanced upgrade directives
   * objfile_extension/0 lives in code
