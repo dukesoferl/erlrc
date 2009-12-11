@@ -1,3 +1,6 @@
+=Version 0.2.4=
+  * eunit provided with erlang now
+
 =Version 0.2.3=
   * already_started error is ok for application start return value
 
