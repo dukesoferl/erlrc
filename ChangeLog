@@ -1,3 +1,6 @@
+=Version 0.2.5=
+  * rpm release
+
 =Version 0.2.4=
   * eunit provided with erlang now
 
