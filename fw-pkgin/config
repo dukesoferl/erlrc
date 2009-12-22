@@ -2,7 +2,7 @@
 # environment variable FW_PACKAGE_DEFAULT_MAINTAINER if non-empty
 
 FW_PACKAGE_NAME="erlrc"
-FW_PACKAGE_VERSION="0.2.4"
+FW_PACKAGE_VERSION="0.2.5"
 FW_PACKAGE_MAINTAINER="Paul Mineiro <paul-fw@mineiro.com>"
 FW_PACKAGE_SHORT_DESCRIPTION="Extensible application management."
 FW_PACKAGE_DESCRIPTION=`cat README`
@@ -25,6 +25,28 @@ FW_PACKAGE_BUILD_CONFLICTS=""
 FW_SUBVERSION_TAG_ROOT="https://erlrc.googlecode.com/svn/tags/erlrc/"
 
 FW_DUPLOAD_ARGS=${FW_DUPLOAD_ARGS-"-t dukeshardy"}
+
+# scp+createrepo is used for submitting rpm packages to a package archive
+# The FW_RPM_REPO_USER, FW_RPM_REPO_HOST, FW_RPM_REPO_BASEDIR,
+# and FW_RPM_POSTCREATEREPO_COMMANDS variables are populated with
+# FW_RPM_REPO_USER_DEFAULT, FW_RPM_REPO_HOST_DEFAULT,
+# FW_RPM_REPO_BASEDIR_DEFAULT, and FW_RPM_POSTCREATEREPO_COMMANDS_DEFAULT
+# respectively if non-empty at init time
+
+FW_RPM_REPO_USER=${FW_RPM_REPO_USER-"`whoami`"}
+FW_RPM_REPO_HOST=${FW_RPM_REPO_HOST-"ub32srvvmw"}
+FW_RPM_REPO_BASEDIR=${FW_RPM_REPO_BASEDIR-"/var/yum"}
+FW_RPM_CREATEREPO_ARGS=${FW_RPM_CREATEREPO_ARGS-"-q --database"}
+
+# this variable controls whether createrepo is run incrementally (--update).
+# possible settings are yes (always do it), no (never do it), and
+# auto (do it if the repository has been previously initialized)
+FW_RPM_CREATEREPO_INCREMENTAL=${FW_RPM_CREATEREPO_INCREMENTAL-"auto"}
+
+# these commands will be run after a successful createrepo run
+FW_RPM_POSTCREATEREPO_COMMANDS=${FW_RPM_POSTCREATEREPO_COMMANDS-"{ cd /var; rsync -a yum /var/package/dukes; }"}
+# here's a suggestion:
+# FW_RPM_POSTCREATEREPO_COMMANDS="gpg --detach-sign --armor repodata/repomd.xml"
 
 # uncomment and set manually if autodetection of modules is incorrect
 # FW_ERL_APP_MODULES=""
