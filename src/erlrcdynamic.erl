@@ -117,7 +117,7 @@ downgrade_unprotected (Application,
            end
       end;
     { value, { Application, _, OtherVersion } } ->
-      local_error_msg ("erlrcdynamic:upgrade/5: got OtherVersion '~p' "
+      local_error_msg ("erlrcdynamic:downgrade/5: got OtherVersion '~p' "
                        "which is neither LaterVersion '~p' nor "
 		       "EarlierVersion '~p'~n",
                        [ OtherVersion, LaterVersion, EarlierVersion ]),
