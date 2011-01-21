@@ -1,8 +1,8 @@
 -module (erlrc_lib).
 
 -export ([ load_application/1,
-	   get_apps_dir/0,
-	   load_resource_file/2 ]).
+           get_apps_dir/0,
+           load_resource_file/2 ]).
 
 -ifdef (HAVE_EUNIT).
 -include_lib ("eunit/include/eunit.hrl").
@@ -49,9 +49,9 @@ load_application (X) ->
 %    Spec = load_resource_file (AppsDir, App),
 %    case application:load (Spec) of
 %      ok ->
-%	ok;
+%        ok;
 %      { error, LoadReason } ->
-%	throw ({ error, LoadReason })
+%        throw ({ error, LoadReason })
 %    end
 %  catch
 %    throw:Error -> { error, Error }
@@ -81,8 +81,8 @@ load_resource_file (AppsDir, App) when is_atom (App) ->
       Path ->
         case file:consult (Path) of
           { ok, [ SSpec = { application, App, SList } ] }
-	  when is_list (SList) ->
-            SSpec;
+            when is_list (SList) ->
+              SSpec;
           { ok, [ Other ] } ->
             throw ({ appspec_file_parse_error, Path, { bad_format, Other } });
           { error, Reason } ->
@@ -159,13 +159,13 @@ asm_test0 (Spec, Override, Expected, Line) ->
   { application, my_app, Merged } =
     try
       appspec_merge ({ application, my_app, Override },
-		     { application, my_app, Spec })
+                     { application, my_app, Spec })
     catch C:E ->
       erlang:error ({ asm_test_exception, [ { exception, { C, E } },
-					    { stack, erlang:get_stacktrace () },
-					    { source, Spec },
-					    { override, Override },
-					    { line, Line } ] })
+                    { stack, erlang:get_stacktrace () },
+                    { source, Spec },
+                    { override, Override },
+                    { line, Line } ] })
 
     end,
   case lists:all (fun (X) -> lists:member (X, Merged) end, Expected) of
@@ -194,56 +194,56 @@ appspec_merge_test_ () ->
     ],
   [
     ?_asm_test (SourceList,
-		[],
-		[ { vsn, "0.6.9" }, { mod, { startmodule, [] } } ]),
+                [],
+                [ { vsn, "0.6.9" }, { mod, { startmodule, [] } } ]),
     ?_asm_test (SourceList, [], SourceList),
     ?_assertError ({ asm_test_badmatch, _ },
                    ?asm_test (SourceList,
-			      [],
-			      [ { vsn, "0.6.9" }, { env, [] } ])),
+                              [],
+                              [ { vsn, "0.6.9" }, { env, [] } ])),
     ?_asm_test (SourceList,
-		[ { env, { keymerge, [ { env_1, "one" },
-				       { env_2, "two" } ] } } ],
-		[ { env, [ { env_1, "one" },
-			   { env_2, "two" },
-			   { env_3, "three" } ] } ]),
+                [ { env, { keymerge, [ { env_1, "one" },
+                        { env_2, "two" } ] } } ],
+                [ { env, [ { env_1, "one" },
+                      { env_2, "two" },
+                      { env_3, "three" } ] } ]),
     ?_asm_test (SourceList,
-		[ { env, { keymerge, [ { env_1, "one" }, { env_2, "two" } ] } },
-		  { modules, { merge, [ module_4, module_5 ] } } ],
-		[ { env, [ { env_1, "one" },
-			   { env_2, "two" },
-			   { env_3, "three" } ] },
-		  { modules, [ module_1, module_2, module_3,
-			       module_4, module_5 ] } ]),
+                [ { env, { keymerge, [ { env_1, "one" }, { env_2, "two" } ] } },
+                  { modules, { merge, [ module_4, module_5 ] } } ],
+                [ { env, [ { env_1, "one" },
+                      { env_2, "two" },
+                      { env_3, "three" } ] },
+                  { modules, [ module_1, module_2, module_3,
+                      module_4, module_5 ] } ]),
     ?_asm_test (SourceList,
-		[ { env, { keymerge, [ { env_1, "one" },
-				       { env_2, "two" } ] } },
-		  { modules, { override, [ module_4, module_5 ] } } ],
-		[ { env, [ { env_1, "one" },
-			   { env_2, "two" },
-			   { env_3, "three" } ] },
-		  { modules, [ module_4, module_5 ] } ]),
+                [ { env, { keymerge, [ { env_1, "one" },
+                        { env_2, "two" } ] } },
+                  { modules, { override, [ module_4, module_5 ] } } ],
+                [ { env, [ { env_1, "one" },
+                      { env_2, "two" },
+                      { env_3, "three" } ] },
+                  { modules, [ module_4, module_5 ] } ]),
     ?_asm_test (SourceList,
-		[ { env, { keymerge, [ { env_1, "one" },
-				       { env_2, "two" } ] } },
-		  { modules, [ module_4, module_5 ] } ],
-		[ { env, [ { env_1, "one" },
-			   { env_2, "two" },
-			   { env_3, "three" } ] },
-		  { modules, [ module_4, module_5 ] } ]),
+                [ { env, { keymerge, [ { env_1, "one" },
+                        { env_2, "two" } ] } },
+                  { modules, [ module_4, module_5 ] } ],
+                [ { env, [ { env_1, "one" },
+                      { env_2, "two" },
+                      { env_3, "three" } ] },
+                  { modules, [ module_4, module_5 ] } ]),
     ?_asm_test (SourceList,
-		[ { blah, { keymerge, [ { env_1, "one" },
-					{ env_2, "two" } ] } },
-		  { blodules, { merge, [ module_4, module_5 ] } } ],
-		[ { blah, [ { env_1, "one" },
-			    { env_2, "two" } ] },
-		  { blodules, [ module_4, module_5 ] } ]),
+                [ { blah, { keymerge, [ { env_1, "one" },
+                        { env_2, "two" } ] } },
+                  { blodules, { merge, [ module_4, module_5 ] } } ],
+                [ { blah, [ { env_1, "one" },
+                      { env_2, "two" } ] },
+                  { blodules, [ module_4, module_5 ] } ]),
     ?_assertError ({ asm_test_exception,
                      [ { exception,
                          { _, { appspec_override_wrong_arity, _ } } } | _ ] },
                    ?asm_test (SourceList,
                               [ { env, { keymerge, [ { env_1, "one" },
-						     { env_2, "two" } ] } },
+                                                     { env_2, "two" } ] } },
                                 { odd, 'size', tuple } ],
                               [ { odd, 'size', tuple } ])),
     ?_test (ok)
