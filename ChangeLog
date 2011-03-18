@@ -1,3 +1,8 @@
+=Version 0.2.6=
+  * release_handler_1 was being installed in priv and ebin, the ebin directory
+  means it was clashing.  Also when the patch fails to apply package wasn't
+  building.
+
 =Version 0.2.5=
   * rpm release
 

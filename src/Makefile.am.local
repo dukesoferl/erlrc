@@ -1,7 +1,7 @@
 # put whatever (auto)make commands here, they will be included from Makefile.am
 
 dist_erlappsrc_DATA = 		\
-  $(wildcard *.erl)
+  $(filter-out release_handler_1.%,$(wildcard *.erl))
 
 dist_erlappinclude_DATA =	\
   $(wildcard *.hrl)
@@ -34,7 +34,12 @@ noinst_DATA =			\
 
 %.erl: %.erl.patch
 	@cp @SASLLOC@/$*.erl .
-	@patch $*.erl $*.erl.patch
+	if patch --dry-run $*.erl $*.erl.patch | grep -q "Reversed" ; \
+	  then \
+		echo "patch already applied" ; \
+	  else \
+	    patch $*.erl $*.erl.patch ; \
+	  fi
 
 release_handler_1_ERLCFLAGS =	\
   -I @SASLLOC@
