@@ -1,7 +1,7 @@
 # put whatever (auto)make commands here, they will be included from Makefile.am
 
 dist_erlappsrc_DATA = 		\
-  $(filter-out release_handler_1.%,$(wildcard *.erl))
+  $(wildcard *.erl)
 
 dist_erlappinclude_DATA =	\
   $(wildcard *.hrl)
@@ -9,11 +9,6 @@ dist_erlappinclude_DATA =	\
 erlappebin_SCRIPTS =					\
   @FW_PACKAGE_NAME@.app					\
   $(patsubst %.erl, %.beam, $(dist_erlappsrc_DATA))
-
-dist_erlapppriv_DATA =		\
-  release_handler_1.beam	\
-  release_handler_1.erl		\
-  release_handler_1.erl.patch
 
 check_DATA =			\
   .dialyzer_ok
@@ -32,21 +27,8 @@ noinst_DATA =			\
   $(dist_bin_SCRIPTS:%=.%.script_ok)
   $(libexec_SCRIPTS:%=.%.script_ok)
 
-%.erl: %.erl.patch
-	@cp @SASLLOC@/$*.erl .
-	if patch --dry-run $*.erl $*.erl.patch | grep -q "Reversed" ; \
-	  then \
-		echo "patch already applied" ; \
-	  else \
-	    patch $*.erl $*.erl.patch ; \
-	  fi
-
-release_handler_1_ERLCFLAGS =	\
-  -I @SASLLOC@
-
 CLEANFILES +=			\
-  $(wildcard .*.script_ok)	\
-  release_handler_1.erl
+  $(wildcard .*.script_ok)
 
 EXTRA_DIST +=			\
   erlrc-make-boot-script.in	\

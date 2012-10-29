@@ -1,5 +1,6 @@
-=Version 0.3.0=
+=Version 1.0.0=
   * switch from regexp to re, R13 will no longer work
+  * removing patching, since R14B onward doesn't need it
 
 =Version 0.2.6=
   * release_handler_1 was being installed in priv and ebin, the ebin directory
