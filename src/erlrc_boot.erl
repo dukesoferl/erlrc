@@ -156,8 +156,8 @@ scan_apps (Dir, AppToSpec) ->
     { ok, Filenames } ->
       Apps = lists:foldl (
         fun (Filename, Found) ->
-            case regexp:match (Filename, "^[a-z][0-9A-Za-z_]*$") of
-              { match, 1, _ } ->
+            case re:run (Filename, "^[a-z][0-9A-Za-z_]*$", [{capture,none}]) of
+              match ->
                 [ list_to_atom (Filename) | Found ];
               _ ->
                 Found

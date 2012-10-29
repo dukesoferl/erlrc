@@ -2,11 +2,11 @@
 # environment variable FW_PACKAGE_DEFAULT_MAINTAINER if non-empty
 
 FW_PACKAGE_NAME="erlrc"
-FW_PACKAGE_VERSION="0.2.6"
+FW_PACKAGE_VERSION="0.3.0"
 FW_PACKAGE_MAINTAINER="Paul Mineiro <paul-fw@mineiro.com>"
 FW_PACKAGE_SHORT_DESCRIPTION="Extensible application management."
 FW_PACKAGE_DESCRIPTION=`cat README`
-FW_PACKAGE_ARCHITECTURE_DEPENDENT="0"
+FW_PACKAGE_ARCHITECTURE_DEPENDENT="1"
 
 # Dependency information.  The native syntax corresponds to Debian,
 # http://www.debian.org/doc/debian-policy/ch-relationships.html
