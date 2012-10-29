@@ -37,4 +37,5 @@ EXTRA_DIST +=			\
 install-data-hook:
 	mkdir -p "$(DESTDIR)/etc/erlrc.d/applications"
 	mkdir -p "$(DESTDIR)/etc/erlrc.d/nodes"
+	chmod 777 "$(DESTDIR)/etc/erlrc.d/nodes"
 	cp "$(DESTDIR)/$(bindir)/erlrc-upgrade" "$(DESTDIR)/$(bindir)/erlrc-upgrayedd"

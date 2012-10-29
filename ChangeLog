@@ -1,3 +1,7 @@
+=Version 1.0.1=
+  * change permissions of /etc/erlrc.d/nodes directory as we probably don't
+  run as root and otherwise this causes errors.
+
 =Version 1.0.0=
   * switch from regexp to re, R13 will no longer work
   * removing patching, since R14B onward doesn't need it
