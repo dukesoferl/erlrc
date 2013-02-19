@@ -1,3 +1,8 @@
+*.gz
+Makefile
+Makefile.am
+Makefile.in
+Makefile.otp
 ac-init.generated
 aclocal.m4
 autom4te.cache
@@ -10,10 +15,5 @@ create-package
 fw
 fw-pkgout
 fw-pkgtmp
-*.gz
 install-sh
-Makefile
-Makefile.am
-Makefile.in
-Makefile.otp
 missing

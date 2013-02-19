@@ -1,11 +1,13 @@
-*.beam
-.*.beam_ok
 *.COVER.out
-erl_crash.dump
-.*.erl_ok
+*.beam
 *.in
+*.test.out
+.*.beam_ok
+.*.erl_ok
+.*.script_ok
 Makefile
 Makefile.am
+erl_crash.dump
 module-*
 ok-boot-test-0
 ok-boot-test-1
@@ -16,9 +18,7 @@ ok-boot-test-duplicate-included
 ok-boot-test-included-deps
 ok-boot-test-nested-include
 otp-test-wrapper.sh
-.*.script_ok
 test-downgrade.out
-*.test.out
 test-start.out
 test-stop.out
 test-upgrade.out
