@@ -1,0 +1,13 @@
+*.app
+*.beam
+.*.beam_ok
+.dialyzer_ok
+erl_crash.dump
+.*.erl_ok
+erlrc-make-boot-script
+fw-erl-app-template.app.in
+*.in
+Makefile
+Makefile.am
+release_handler_1.erl
+.*.script_ok
