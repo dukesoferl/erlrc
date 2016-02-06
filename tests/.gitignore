@@ -1,5 +1,5 @@
-*.COVER.out
 *.COVER.html
+*.COVER.out
 *.beam
 *.in
 *.test.out
