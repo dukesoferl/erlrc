@@ -1,7 +1,7 @@
 # The FW_PACKAGE_MAINTAINER field is populated with the 
 # environment variable FW_PACKAGE_DEFAULT_MAINTAINER if non-empty
 
-FW_PACKAGE_NAME="erlrc"
+FW_PACKAGE_NAME="${BUILD_PREFIX}erlrc"
 FW_PACKAGE_VERSION="1.0.1"
 FW_PACKAGE_MAINTAINER="Paul Mineiro <paul-fw@mineiro.com>"
 FW_PACKAGE_SHORT_DESCRIPTION="Extensible application management."
@@ -45,6 +45,8 @@ FW_RPM_CREATEREPO_INCREMENTAL=${FW_RPM_CREATEREPO_INCREMENTAL-"auto"}
 FW_RPM_POSTCREATEREPO_COMMANDS=${FW_RPM_POSTCREATEREPO_COMMANDS-"{ cd /var; rsync -a yum /var/package/dukes; }"}
 # here's a suggestion:
 # FW_RPM_POSTCREATEREPO_COMMANDS="gpg --detach-sign --armor repodata/repomd.xml"
+
+FW_ERL_APP_NAME="erlrc"
 
 # uncomment and set manually if autodetection of modules is incorrect
 # FW_ERL_APP_MODULES=""

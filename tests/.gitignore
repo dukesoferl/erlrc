@@ -1,12 +1,15 @@
 *.COVER.out
+*.COVER.html
 *.beam
 *.in
 *.test.out
+*.xml
 .*.beam_ok
 .*.erl_ok
 .*.script_ok
 Makefile
 Makefile.am
+dialyzer.log
 erl_crash.dump
 module-*
 ok-boot-test-0

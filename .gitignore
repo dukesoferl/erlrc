@@ -17,3 +17,5 @@ fw-pkgout
 fw-pkgtmp
 install-sh
 missing
+sonar-project.properties
+sonar-project.properties.in

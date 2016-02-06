@@ -7,7 +7,7 @@ dist_erlappinclude_DATA =	\
   $(wildcard *.hrl)
 
 erlappebin_SCRIPTS =					\
-  @FW_PACKAGE_NAME@.app					\
+  @FW_ERL_APP_NAME@.app					\
   $(patsubst %.erl, %.beam, $(dist_erlappsrc_DATA))
 
 check_DATA =			\
