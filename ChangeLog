@@ -1,3 +1,6 @@
+=Version 1.0.2=
+  * add a provides in case building with different versions of erlang.
+
 =Version 1.0.1=
   * change permissions of /etc/erlrc.d/nodes directory as we probably don't
   run as root and otherwise this causes errors.
