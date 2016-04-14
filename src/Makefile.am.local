@@ -23,11 +23,21 @@ dist_bin_SCRIPTS =		\
   erlrc-stop			\
   erlrc-upgrade
 
+.hidden:
+	touch .hidden
+
+erlrc_dir = /etc/erlrc.d
+erlrc_appdir = /etc/erlrc.d/applications
+erlrc_nodesdir = /etc/erlrc.d/nodes
+dist_erlrc_app_DATA = .hidden
+dist_erlrc_nodes_DATA = .hidden
+
 noinst_DATA =			\
   $(dist_bin_SCRIPTS:%=.%.script_ok)
   $(libexec_SCRIPTS:%=.%.script_ok)
 
 CLEANFILES +=			\
+  .hidden \
   $(wildcard .*.script_ok)
 
 EXTRA_DIST +=			\
@@ -35,7 +45,5 @@ EXTRA_DIST +=			\
   $(libexec_SCRIPTS)
 
 install-data-hook:
-	mkdir -p "$(DESTDIR)/etc/erlrc.d/applications"
-	mkdir -p "$(DESTDIR)/etc/erlrc.d/nodes"
 	chmod 777 "$(DESTDIR)/etc/erlrc.d/nodes"
 	cp "$(DESTDIR)/$(bindir)/erlrc-upgrade" "$(DESTDIR)/$(bindir)/erlrc-upgrayedd"
