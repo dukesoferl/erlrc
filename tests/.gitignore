@@ -2,7 +2,9 @@
 *.COVER.out
 *.beam
 *.in
+*.log
 *.test.out
+*.trs
 *.xml
 .*.beam_ok
 .*.erl_ok

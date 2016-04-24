@@ -20,3 +20,4 @@ install-sh
 missing
 sonar-project.properties
 sonar-project.properties.in
+test-driver
