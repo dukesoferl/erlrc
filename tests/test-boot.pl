@@ -130,24 +130,25 @@ if ($pid)
 else
   {
     exec ('erl',
-	  '-boot', 'start_sasl',
-	  '-sasl', 'sasl_error_logger', qq({ file, "$tmp_dir/sasl_errors" }),
-	  '-erlrc', 'root_dir', qq("$erlrc_root"),
-	  (map { ('-pa', $_) } @code_paths),
-	  '-pa', '../src',
-	  '-eval', q(
-		      { ok, _ } = erlrc_boot_test:start_link (),
-		      Result = erlrc_boot:boot (),
-		      io:format ("~w~n", [Result]),
-		      lists:foreach (
-			fun ({ _Time, { start, App, Overridden } }) ->
-			  io:format ("~w:~w~n", [ App, Overridden ])
-			end,
-			lists:sort (erlrc_boot_test:dump ())
-		      )
-		   ),
-	  '-s', 'init', 'stop',
-	  '-noshell', '-noinput')
+          '-boot', 'start_sasl',
+          '-sasl', 'sasl_error_logger', qq({ file, "$tmp_dir/sasl_errors" }),
+          '-erlrc', 'root_dir', qq("$erlrc_root"),
+          (map { ('-pa', $_) } @code_paths),
+          '-pa', '../src',
+          '-eval', q(
+                      timer:sleep(1000),
+                      { ok, _ } = erlrc_boot_test:start_link (),
+                      Result = erlrc_boot:boot (),
+                      io:format ("~w~n", [Result]),
+                      lists:foreach (
+                        fun ({ _Time, { start, App, Overridden } }) ->
+                          io:format ("~w:~w~n", [ App, Overridden ])
+                        end,
+                        lists:sort (erlrc_boot_test:dump ())
+                      )
+                    ),
+          '-s', 'init', 'stop',
+          '-noshell', '-noinput')
       or die "exec: $!";
   }
 

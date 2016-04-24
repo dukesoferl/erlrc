@@ -1,4 +1,12 @@
-boot_tests = $(patsubst boot-test-%, ok-boot-test-%, $(wildcard boot-test-*))
+boot_tests = \
+  ok-boot-test-0 \
+  ok-boot-test-1 \
+  ok-boot-test-circular-1 \
+  ok-boot-test-circular-2 \
+  ok-boot-test-dependency-included \
+  ok-boot-test-duplicate-included \
+  ok-boot-test-included-deps \
+  ok-boot-test-nested-include
 
 ok-boot-test-%: boot-test-%
 	./test-boot.pl $<
@@ -25,3 +33,7 @@ EXTRA_DIST +=		\
   test-start		\
   test-stop		\
   test-upgrade
+
+maintainer-clean-local:
+	rm -f *.out
+	rm -f *.log
