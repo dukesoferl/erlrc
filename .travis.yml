@@ -1,5 +1,5 @@
 language: erlang
-before_script: ./bootstrap && ./configure --prefix=$HOME && make && make check
+before_script: dialyzer --build_plt --apps erts kernel stdlib ; ./bootstrap && ./configure --prefix=$HOME && make && make check
 install:
     - wget https://github.com/dukesoferl/fw/archive/rpm-0_9_7-noarch.tar.gz
     - tar -xzvf rpm-0_9_7-noarch.tar.gz
