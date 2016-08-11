@@ -17,7 +17,7 @@ start_link () ->
   gen_server:start_link ({ local, ?MODULE }, ?MODULE, [ ], [ ]).
 
 notify (Item) ->
-  gen_server:cast (?MODULE, { notify, erlang:now(), Item }).
+  gen_server:cast (?MODULE, { notify, os:timestamp(), Item }).
 
 %
 % gen_server callbacks
