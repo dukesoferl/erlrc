@@ -2,7 +2,7 @@ language: erlang
 before_script: ./bootstrap
 install:
     - wget https://github.com/dukesoferl/fw/archive/rpm-0_9_7-noarch.tar.gz
-    - tar -xzvf fw-0.9.7.tar.gz
+    - tar -xzvf rpm-0_9_7-noarch.tar.gz
     - cd fw-rpm-0_9_7-noarch && ./bootstrap && ./configure --prefix=$HOME && make && make install && cd ..
     - export PATH=$PATH:$HOME/bin
     - wget https://github.com/dukesoferl/fw-template-erlang/archive/rpm-0_6_2-noarch.tar.gz
