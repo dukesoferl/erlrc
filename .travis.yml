@@ -6,7 +6,7 @@ install:
     - cd fw-rpm-0_9_7-noarch && ./bootstrap && ./configure --prefix=$HOME && make && make install && cd ..
     - export PATH=$PATH:$HOME/bin
     - wget https://github.com/dukesoferl/fw-template-erlang/archive/rpm-0_6_2-noarch.tar.gz
-    - tar -xzvf fw-template-erlang-0.6.2.tar.gz
-    - cd fw-template-erlang-rpm-0_6_2-noarch && ./bootstrap && ./configure --prefix=$HOME && make && make install && cd ..
+    - tar -xzvf rpm-0_6_2-noarch.tar.gz
+    - cd rpm-0_6_2-noarch && ./bootstrap && ./configure --prefix=$HOME && make && make install && cd ..
 otp_release:
     - R16B
