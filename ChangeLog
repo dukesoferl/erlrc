@@ -1,5 +1,6 @@
 =Version 1.0.7=
   * calculate and always use BUILD_PREFIX
+  * Different fix for erlrc-hooks bug.
 
 =Version 1.0.6=
   * Fix an erlrc-hooks bug.
