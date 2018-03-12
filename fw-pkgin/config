@@ -5,7 +5,7 @@ ERLANG_VERSION=$(erl -eval 'io:format("~s", [ erlang:system_info(otp_release) ])
 BUILD_PREFIX=erlang-$(perl -e '$ARGV[0] =~ m/^(R?\d+[A-Z]*)/i and print lc($1) or die "$ARGV[0]";' "$ERLANG_VERSION")-
 
 FW_PACKAGE_NAME="${BUILD_PREFIX}erlrc"
-FW_PACKAGE_VERSION="1.1.0"
+FW_PACKAGE_VERSION="1.1.1"
 FW_PACKAGE_MAINTAINER="Paul Mineiro <paul-fw@mineiro.com>"
 FW_PACKAGE_SHORT_DESCRIPTION="Extensible application management."
 FW_PACKAGE_DESCRIPTION=`cat README`

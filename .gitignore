@@ -2,7 +2,6 @@
 .hidden
 .rebar
 Makefile
-Makefile.am
 Makefile.in
 Makefile.otp
 ac-init.generated

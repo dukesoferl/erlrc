@@ -10,7 +10,7 @@
 .*.erl_ok
 .*.script_ok
 Makefile
-Makefile.am
+Makefile.in
 dialyzer.log
 erl_crash.dump
 module-*
