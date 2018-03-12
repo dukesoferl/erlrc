@@ -1,0 +1,10 @@
+{application,erlrc,
+             [{description,"Extensible application management."},
+              {vsn,"1.0.7"},
+              {modules,[erlrc,erlrc_boot,erlrc_lib,erlrcdynamic,erlrcsup,
+                        erlrcsupnotify]},
+              {registered,[erlrcsup]},
+              {applications,[kernel,stdlib]},
+              {env,[{root_dir,"/etc/erlrc.d"}]},
+              {mod,{erlrc,[]}}]}
+.

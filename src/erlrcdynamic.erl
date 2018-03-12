@@ -19,10 +19,6 @@
 
 -include_lib ("kernel/include/file.hrl").
 
--ifdef (HAVE_EUNIT).
--include_lib ("eunit/include/eunit.hrl").
--endif.
-
 %-=====================================================================-
 %-                                Public                               -
 %-=====================================================================-
@@ -1045,7 +1041,8 @@ read_app (App, Vsn, Dir) ->
 %-                                Tests                                -
 %-=====================================================================-
 
--ifdef (EUNIT).
+-ifdef (TEST).
+-include_lib ("eunit/include/eunit.hrl").
 
 app_setup () ->
   OsPid = os:getpid (),

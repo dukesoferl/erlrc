@@ -14,4 +14,4 @@ if test -z "$fwb"
     exit 1
   fi
 
-"$fwb" --fw_version "0.1.27" --template erlang --name erlrc --revision git "$@"
+"$fwb" --fw_version "0.1.27" --template erlang-rebar --name erlrc --revision git "$@"

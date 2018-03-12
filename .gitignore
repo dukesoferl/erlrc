@@ -1,5 +1,6 @@
 *.gz
 .hidden
+.rebar
 Makefile
 Makefile.am
 Makefile.in
@@ -18,6 +19,9 @@ fw-pkgout
 fw-pkgtmp
 install-sh
 missing
+rebar
+rebar.config
+rebar.config.script
 sonar-project.properties
 sonar-project.properties.in
 test-driver

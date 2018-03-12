@@ -4,10 +4,6 @@
            get_apps_dir/0,
            load_resource_file/2 ]).
 
--ifdef (HAVE_EUNIT).
--include_lib ("eunit/include/eunit.hrl").
--endif.
-
 %% @spec load_application (App::atom()) -> ok | { error, Reason }
 %% @doc We're having problems with this, so for now this is equivalent
 %% to application:load/1.  Here's what we'd like it to do eventually:
@@ -153,7 +149,8 @@ keystore2 (Key, N, [ H | T ], New) ->
 keystore2 (_Key, _N, [], New) ->
     [ New ].
 
--ifdef (EUNIT).
+-ifdef (TEST).
+-include_lib ("eunit/include/eunit.hrl").
 
 asm_test0 (Spec, Override, Expected, Line) ->
   { application, my_app, Merged } =

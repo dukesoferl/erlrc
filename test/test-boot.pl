@@ -134,7 +134,7 @@ else
           '-sasl', 'sasl_error_logger', qq({ file, "$tmp_dir/sasl_errors" }),
           '-erlrc', 'root_dir', qq("$erlrc_root"),
           (map { ('-pa', $_) } @code_paths),
-          '-pa', '../src',
+          '-pa', '../.eunit',
           '-eval', q(
                       timer:sleep(1000),
                       { ok, _ } = erlrc_boot_test:start_link (),

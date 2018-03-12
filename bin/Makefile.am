@@ -1,18 +1,5 @@
 # put whatever (auto)make commands here, they will be included from Makefile.am
 
-dist_erlappsrc_DATA = 		\
-  $(wildcard *.erl)
-
-dist_erlappinclude_DATA =	\
-  $(wildcard *.hrl)
-
-erlappebin_SCRIPTS =					\
-  @FW_ERL_APP_NAME@.app					\
-  $(patsubst %.erl, %.beam, $(dist_erlappsrc_DATA))
-
-check_DATA =			\
-  .dialyzer_ok
-
 dist_bin_SCRIPTS =		\
   erlrc-make-boot-script	\
   erlrc-downgrade		\
@@ -32,17 +19,16 @@ erlrc_nodesdir = /etc/erlrc.d/nodes
 dist_erlrc_app_DATA = .hidden
 dist_erlrc_nodes_DATA = .hidden
 
-noinst_DATA =			\
-  $(dist_bin_SCRIPTS:%=.%.script_ok)
-  $(libexec_SCRIPTS:%=.%.script_ok)
 
-CLEANFILES +=			\
-  .hidden \
-  $(wildcard .*.script_ok)
+CLEANFILES =			\
+  $(wildcard .*.script_ok) \
+  .hidden
 
-EXTRA_DIST +=			\
-  erlrc-make-boot-script.in	\
-  $(libexec_SCRIPTS)
+MAINTAINERCLEANFILES = \
+  Makefile.in
+
+EXTRA_DIST =			\
+  erlrc-make-boot-script.in
 
 install-data-hook:
 	chmod 777 "$(DESTDIR)/etc/erlrc.d/nodes"
