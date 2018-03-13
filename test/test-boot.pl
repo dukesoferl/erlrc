@@ -135,6 +135,7 @@ else
           '-erlrc', 'root_dir', qq("$erlrc_root"),
           (map { ('-pa', $_) } @code_paths),
           '-pa', '../.eunit',
+          '-pa', '../ebin',
           '-eval', q(
                       timer:sleep(1000),
                       { ok, _ } = erlrc_boot_test:start_link (),

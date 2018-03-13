@@ -37,3 +37,5 @@ EXTRA_DIST =		\
 maintainer-clean-local:
 	rm -f *.out
 	rm -f *.log
+	rm -rf tmp-*
+	erl_crash.dump

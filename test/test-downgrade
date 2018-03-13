@@ -21,7 +21,7 @@ rm -rf flass$$
 mkdir -p flass$$/nodes/
 mkdir -p flass$$/applications/
 
-erl -name erlrcdowngrade$$ -setcookie flass$$ -noshell -noinput -pa ../.eunit/ -erlrc root_dir \"flass$$\" -eval '
+erl -name erlrcdowngrade$$ -setcookie flass$$ -noshell -noinput -pa ../.eunit/ -pa ../ebin/ -erlrc root_dir \"flass$$\" -eval '
   ok = application:load (erlrc),
   receive after infinity -> ok end
 ' -s erlang halt &

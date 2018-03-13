@@ -2,3 +2,5 @@
 MAINTAINERCLEANFILES += test-driver
 
 SUBDIRS += . test bin
+
+EXTRA_DIST += include

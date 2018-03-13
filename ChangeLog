@@ -1,3 +1,7 @@
+=Version 1.1.2=
+  * missing directory
+  * fixes in unit tests for paths
+
 =Version 1.1.1=
   * forgot a file
 

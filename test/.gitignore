@@ -27,3 +27,4 @@ test-downgrade.out
 test-start.out
 test-stop.out
 test-upgrade.out
+tmp-*
