@@ -38,4 +38,4 @@ maintainer-clean-local:
 	rm -f *.out
 	rm -f *.log
 	rm -rf tmp-*
-	erl_crash.dump
+	rm -f erl_crash.dump
